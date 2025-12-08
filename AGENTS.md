@@ -2,7 +2,7 @@
 - Project name: Uni-bot
 - Unity version: Unity 6000.0.60f1
 - Active game object:
-  - Name: Scanable Object
+  - Name: Button 3D Handler
   - Tag: Untagged
-  - Layer: Scannable
+  - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->
