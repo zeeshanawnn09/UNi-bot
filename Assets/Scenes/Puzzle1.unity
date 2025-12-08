@@ -1206,6 +1206,7 @@ Transform:
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &254369885
@@ -5150,6 +5151,11 @@ Transform:
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
 --- !u!114 &1553045618
+=======
+  m_Father: {fileID: 1238796461}
+  m_LocalEulerAnglesHint: {x: 87.311, y: 0, z: 0}
+--- !u!114 &105626379
+>>>>>>> Stashed changes
 =======
   m_Father: {fileID: 1238796461}
   m_LocalEulerAnglesHint: {x: 87.311, y: 0, z: 0}
@@ -12066,6 +12072,7 @@ Transform:
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   m_LocalRotation: {x: -0.0000023407301, y: -0.60876274, z: 0.7933523, w: 0.000001796112}
   m_LocalPosition: {x: 30.9, y: 63.88, z: 94.78}
   m_LocalScale: {x: 7, y: 2, z: 0.2}
@@ -12079,6 +12086,13 @@ Transform:
   m_LocalScale: {x: 7, y: 2, z: 0.2}
   m_ConstrainProportionsScale: 0
   m_Children: []
+=======
+  m_LocalRotation: {x: -0, y: -1, z: -0, w: 0.0000029504295}
+  m_LocalPosition: {x: -60.124252, y: 26.730946, z: 23.070053}
+  m_LocalScale: {x: 7, y: 2, z: 0.2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+>>>>>>> Stashed changes
 =======
   m_LocalRotation: {x: -0, y: -1, z: -0, w: 0.0000029504295}
   m_LocalPosition: {x: -60.124252, y: 26.730946, z: 23.070053}
@@ -12317,7 +12331,11 @@ Transform:
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   m_LocalPosition: {x: 30.9, y: 64.39, z: 67.48}
+=======
+  m_LocalPosition: {x: -60.124252, y: 27.24094, z: -4.2299423}
+>>>>>>> Stashed changes
 =======
   m_LocalPosition: {x: -60.124252, y: 27.24094, z: -4.2299423}
 >>>>>>> Stashed changes
@@ -19757,6 +19775,7 @@ SceneRoots:
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   - {fileID: 233014330}
   - {fileID: 1553045617}
   - {fileID: 1549142691}
@@ -19829,6 +19848,8 @@ SceneRoots:
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
   - {fileID: 109389478}
   - {fileID: 543450652495220708}
   - {fileID: 894047869}
@@ -19842,6 +19863,9 @@ SceneRoots:
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
