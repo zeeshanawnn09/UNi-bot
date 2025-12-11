@@ -2,7 +2,7 @@
 - Project name: Uni-bot
 - Unity version: Unity 6000.0.60f1
 - Active game object:
-  - Name: Scanable Object
+  - Name: Cube (12)
   - Tag: Untagged
-  - Layer: Scannable
+  - Layer: Geometry
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->

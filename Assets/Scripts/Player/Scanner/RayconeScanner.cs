@@ -101,10 +101,7 @@ public class RayconeScanner: MonoBehaviour
                 current.Add(s);
                 break;
             }
-
-            // Needs to be discussed, can a object be scanned if covered by non-scannable object?
-            // If yes, remove "else break"
-            else break;
+            
         }
     }
 
