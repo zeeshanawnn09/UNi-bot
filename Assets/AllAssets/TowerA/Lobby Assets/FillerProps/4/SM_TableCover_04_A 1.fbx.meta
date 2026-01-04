@@ -1,14 +1,9 @@
 fileFormatVersion: 2
-guid: cb35222f7aa388d4fabf122c0908ee07
+guid: fd2394826b9e169418ad9facda17055d
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects:
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: https___www.cgtrader.com_halocan27  Like = _3
-    second: {fileID: 2100000, guid: cc0f3051a3d76e5418aff10e8355eeab, type: 2}
+  externalObjects: {}
   materials:
     materialImportMode: 2
     materialName: 0

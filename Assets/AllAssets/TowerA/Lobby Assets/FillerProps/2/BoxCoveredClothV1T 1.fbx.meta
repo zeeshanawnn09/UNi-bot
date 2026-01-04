@@ -1,14 +1,9 @@
 fileFormatVersion: 2
-guid: 95ed7f0def754f54aa6f0bedd1633daa
+guid: e49c5eab52459dc41937b043800e8e6e
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects:
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: WoodPalette_MTL
-    second: {fileID: 2100000, guid: 9b282879f7d5598439489365360a0136, type: 2}
+  externalObjects: {}
   materials:
     materialImportMode: 2
     materialName: 0

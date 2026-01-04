@@ -1,14 +1,9 @@
 fileFormatVersion: 2
-guid: c61bbed1471c93f4cb86d0af8cff8ce4
+guid: 215bbebd009e99044a79401567c70d9b
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects:
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: box.paa_NNN2
-    second: {fileID: 2100000, guid: 9472bab80aa2b67488edfd4728fac888, type: 2}
+  externalObjects: {}
   materials:
     materialImportMode: 2
     materialName: 0
