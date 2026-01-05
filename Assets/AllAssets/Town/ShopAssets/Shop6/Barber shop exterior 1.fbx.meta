@@ -3,7 +3,37 @@ guid: 0c68f7567efbfa84dafd713d8dafd359
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Barber Roof Sign
+    second: {fileID: 2100000, guid: 24b94636cad470a47a7cafab2bcbcf1c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Barber Sign
+    second: {fileID: 2100000, guid: 173226b209268944d9ebb18a7b496386, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Barber shop Sign
+    second: {fileID: 2100000, guid: 80f84161efdb58741834ddf0bbe50cea, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Building Trim Sheet
+    second: {fileID: 2100000, guid: 23fb6ec30d6e96b4fa0ab618317834e9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Glass Real
+    second: {fileID: 2100000, guid: ff651a98c3727904fac23b82a03c373a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Poster
+    second: {fileID: 2100000, guid: 953152db45e7df3499daa2e7af150c47, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
