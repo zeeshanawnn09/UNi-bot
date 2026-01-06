@@ -3,7 +3,17 @@ guid: 70134871223b569459ce55a1a5acc493
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: block
+    second: {fileID: 2100000, guid: 4fb352b2b2d9d7145adc1842b47fe336, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: rubbles
+    second: {fileID: 2100000, guid: 68990cb426a060648ae2ebf8cd5b1b41, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
