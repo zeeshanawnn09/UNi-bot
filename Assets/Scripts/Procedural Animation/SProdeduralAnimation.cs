@@ -1,40 +1,56 @@
-﻿using System;
+using System;
 using System.Collections;
 using UnityEngine;
 
-public class ProceduralAnimation : MonoBehaviour
+public class CCProceduralAnimation : MonoBehaviour
 {
-    [Tooltip("Step distance is used to calculate step height. When character makes a short step there is no need to rase foot all the way up so if the current step distance is less then this step distance value step height will be lover then usual.")]
+    [Tooltip("Step distance is used to calculate step height. When the character makes a very short step there is no need to raise the foot all the way up, so if this step distance value is small, step height will be lower than usual.")]
     [SerializeField] private float stepDistance = 1f;
     [SerializeField] private float stepHeight = 1f;
     [SerializeField] private float stepSpeed = 5f;
-    [Tooltip("Velocity multiplier used to make step wider when moving on high speed (if you toggle the show gizmoz below and move your model around you could clearly see what this does. The blue spheres represent the target step points and will move further ahead if you increase velocity multiplier)")]
+
+    [Tooltip("Velocity multiplier used to make step wider when moving fast (step will move further ahead if you increase this).")]
     [SerializeField] private float velocityMultiplier = .4f;
-    [SerializeField] private float cycleSpeed = 1;
-    [Tooltip("how often in seconds legs will move (every one second by default)")]
-    [SerializeField] private float cycleLimit = 1;
-    [Tooltip("•	If you want some legs to move together enable the Set Timings Manually. And add as many timings as your model has legs. The first Manual Timing is relative to the first leg in the leg IK targets array etc. For example: if your character has four legs and you want two left legs move first and two right to move second you need to set timings to [0.5, 0.5, 0, 0]. That means that first two legs will move and only 0.5 second later the second two will move. ")]
+
+    [SerializeField] private float cycleSpeed = 1f;
+
+    [Tooltip("How often in seconds legs will move (every one second by default).")]
+    [SerializeField] private float cycleLimit = 1f;
+
+    [Tooltip("If you want some legs to move together enable this and set timings manually. For example on a 4-leg creature you can use [0, 0, 0.5, 0.5] so first two legs move together and only 0.5 seconds later the second two will move.")]
     [SerializeField] private bool SetTimingsManually;
     [SerializeField] private float[] manualTimings;
-    [Tooltip("If you want only one leg to move at a time then set Timings offset as one divided by the number of legs. For example: if your character has four legs you need to set this as ¼ = 0.25. The script will offset the cycle of every leg by 0.25 seconds. ")]
+
+    [Tooltip("If you want only one leg to move at a time then you can set this to a non-zero offset. Example: for 4 legs, 0.25 means script will offset the cycle of every leg by 0.25 seconds.")]
     [SerializeField] private float timigsOffset = 0.25f;
-    [Tooltip("Velocity clamp limits the step distance while moving on high speed.")]
-    [SerializeField] private float velocityClamp = 4;
+
+    [Tooltip("Velocity clamp limits the step distance while moving at high speed.")]
+    [SerializeField] private float velocityClamp = 4f;
 
     [SerializeField] private LayerMask layerMask;
-    [SerializeField] private AnimationCurve legArcPathY = new AnimationCurve(new Keyframe(0, 0, 0, 2.5f), new Keyframe(0.5f, 1), new Keyframe(1, 0, -2.5f, 0));
-    [SerializeField] private AnimationCurve easingFunction = AnimationCurve.EaseInOut(0, 0, 1, 1);
+
+    [SerializeField]
+    private AnimationCurve legArcPathY = new AnimationCurve(
+        new Keyframe(0f, 0f, 0f, 2.5f),
+        new Keyframe(0.5f, 1f),
+        new Keyframe(1f, 0f, -2.5f, 0f)
+    );
+
+    [SerializeField]
+    private AnimationCurve easingFunction = AnimationCurve.EaseInOut(0, 0, 1, 1);
+
     [SerializeField] private Transform[] legIktargets;
 
     [Header("Raycasts")]
     public bool showGizmoz = true;
-    [SerializeField] float legRayoffset = 3;
-    [SerializeField] float legRayLength = 6;
-    [Tooltip("Ground check range for every leg")]
-    [SerializeField] float sphereCastRadius = 1;
+    [SerializeField] private float legRayoffset = 3f;
+    [SerializeField] private float legRayLength = 6f;
 
-    [Header("Advansed")]
-    [Tooltip("Refresh Timings rate updates timings and sets it to default value to make sure every leg is making step at the right time. If your character moves slowly, you can set it as some big value like 100 so it updates only every 100 seconds but if not, you need to lower this value. For example: fast pink robot in demo scene has this value set as 10. ")]
+    [Tooltip("Ground check range for every leg.")]
+    [SerializeField] private float sphereCastRadius = 1f;
+
+    [Header("Advanced")]
+    [Tooltip("Refresh timings rate. Updates timings and sets initial offsets. Example: fast pink robot in demo scene has this value set to 10.")]
     [SerializeField] private float refreshTimingRate = 60f;
 
     public EventHandler<Vector3> OnStepFinished;
@@ -43,6 +59,7 @@ public class ProceduralAnimation : MonoBehaviour
     private Vector3[] defaultLegPositions;
     private Vector3[] raycastPoints;
     private Vector3[] targetStepPosition;
+
     private Vector3 velocity;
     private Vector3 lastVelocity;
     private Vector3 lastBodyPos;
@@ -77,7 +94,6 @@ public class ProceduralAnimation : MonoBehaviour
             Debug.LogError("manual footTimings length should be equal to the leg count");
         }
 
-
         for (int i = 0; i < nbLegs; ++i)
         {
             if (SetTimingsManually)
@@ -93,7 +109,7 @@ public class ProceduralAnimation : MonoBehaviour
             defaultLegPositions[i] = legIktargets[i].localPosition;
         }
 
-        //to make sure timings are in synch
+        // make sure timings are in sync
         StartCoroutine(UpdateTimings(refreshTimingRate));
     }
 
@@ -105,27 +121,34 @@ public class ProceduralAnimation : MonoBehaviour
 
         lastVelocity = velocity;
 
-        indexTomove = -1;
-
+        // Fit legs to the ground, but do NOT override legs that are currently stepping
         for (int i = 0; i < nbLegs; ++i)
         {
-            // fit legs to the ground
-            if (i == indexTomove) continue;
-            legIktargets[i].position = FitToTheGround(lastLegPositions[i], layerMask, legRayoffset, legRayLength, sphereCastRadius);
+            // Skip legs that are currently making a step
+            if (isLegMoving[i])
+                continue;
+
+            legIktargets[i].position = FitToTheGround(
+                lastLegPositions[i],
+                layerMask,
+                legRayoffset,
+                legRayLength,
+                sphereCastRadius
+            );
         }
 
-        //to move legs more frequently when speed is close to max speed
+        // move legs more frequently when speed is close to max speed
         float cycleSpeedMultiplyer = Remap(velocity.magnitude, 0f, velocityClamp, 1f, 2f);
 
         for (int i = 0; i < nbLegs; ++i)
         {
-            //move legs when everytime footTimings reache limit
+            // move legs whenever footTimings reaches the limit
             footTimings[i] += Time.deltaTime * cycleSpeed * cycleSpeedMultiplyer;
 
-            if (footTimings[i] >= cycleLimit)
+            // do NOT start a new step on a leg that is already moving
+            if (footTimings[i] >= cycleLimit && !isLegMoving[i])
             {
-
-                footTimings[i] = 0;
+                footTimings[i] = 0f;
 
                 indexTomove = i;
                 SetUp(i);
@@ -138,9 +161,11 @@ public class ProceduralAnimation : MonoBehaviour
     public void SetUp(int index)
     {
         // finding target step point based on body velocity 
-        Vector3 v = transform.TransformPoint(
-            defaultLegPositions[index]) +
-            velocity.normalized * Mathf.Clamp(velocity.magnitude, 0, velocityClamp * clampDevider) * velocityMultiplier;
+        Vector3 v = transform.TransformPoint(defaultLegPositions[index]) +
+                    velocity.normalized *
+                    Mathf.Clamp(velocity.magnitude, 0, velocityClamp * clampDevider) *
+                    velocityMultiplier;
+
         targetStepPosition[index] = FitToTheGround(v, layerMask, legRayoffset, legRayLength, sphereCastRadius);
 
         totalDistance[index] = GetDistanceToTarget(index);
@@ -148,34 +173,45 @@ public class ProceduralAnimation : MonoBehaviour
         float distance = Vector3.Distance(legIktargets[index].position, targetStepPosition[index]);
         arcHeitMultiply[index] = distance / stepDistance;
 
-        if (targetStepPosition[index] != Vector3.zero && IsValidStepPoint(targetStepPosition[index], layerMask, legRayoffset, legRayLength, sphereCastRadius))
+        if (targetStepPosition[index] != Vector3.zero &&
+            IsValidStepPoint(targetStepPosition[index], layerMask, legRayoffset, legRayLength, sphereCastRadius))
         {
-            StartCoroutine(MakeStep(targetStepPosition[index], indexTomove));
+            // IMPORTANT FIX: use the actual leg index here, not indexTomove
+            StartCoroutine(MakeStep(targetStepPosition[index], index));
         }
     }
 
     private IEnumerator MakeStep(Vector3 targetPosition, int index)
     {
-        float current = 0;
+        // IMPORTANT FIX: mark this leg as moving while the step is in progress
+        isLegMoving[index] = true;
 
-        while (current < 1)
+        float current = 0f;
+
+        while (current < 1f)
         {
             current += Time.deltaTime * stepSpeed;
 
-            float positionY = legArcPathY.Evaluate(current) * stepHeight * Mathf.Clamp(arcHeitMultiply[index], 0, 1f);
+            float positionY = legArcPathY.Evaluate(current) *
+                              stepHeight *
+                              Mathf.Clamp(arcHeitMultiply[index], 0f, 1f);
 
             Vector3 desiredStepPosition = new Vector3(
                 targetPosition.x,
-                positionY + targetPosition.y,
-                targetPosition.z);
+                targetPosition.y + positionY,
+                targetPosition.z
+            );
 
-            legIktargets[index].position = Vector3.Lerp(lastLegPositions[index], desiredStepPosition, easingFunction.Evaluate(current));
+            legIktargets[index].position = Vector3.Lerp(
+                lastLegPositions[index],
+                desiredStepPosition,
+                easingFunction.Evaluate(current)
+            );
 
             yield return null;
         }
 
         LegReachedTargetPosition(targetPosition, index);
-
     }
 
     private void LegReachedTargetPosition(Vector3 targetPosition, int index)
@@ -193,7 +229,6 @@ public class ProceduralAnimation : MonoBehaviour
         isLegMoving[index] = false;
     }
 
-
     private IEnumerator UpdateTimings(float time)
     {
         yield return new WaitForSecondsRealtime(time);
@@ -209,8 +244,6 @@ public class ProceduralAnimation : MonoBehaviour
                 footTimings[i] = i * timigsOffset;
             }
         }
-
-        StartCoroutine(UpdateTimings(refreshTimingRate));
     }
 
     public Transform[] GetLegArray()
@@ -220,7 +253,10 @@ public class ProceduralAnimation : MonoBehaviour
 
     private float GetDistanceToTarget(int index)
     {
-        return Vector3.Distance(legIktargets[index].position, transform.TransformPoint(defaultLegPositions[index]));
+        return Vector3.Distance(
+            legIktargets[index].position,
+            transform.TransformPoint(defaultLegPositions[index])
+        );
     }
 
     public float GetDistanceToGround(int index)
@@ -229,6 +265,7 @@ public class ProceduralAnimation : MonoBehaviour
         Ray ray = new Ray(leg + Vector3.up * .1f, -Vector3.up);
         RaycastHit hit;
 
+        // keeping original signature pattern here
         if (Physics.Raycast(ray, out hit, layerMask))
         {
             return Vector3.Distance(leg, hit.point);
@@ -249,8 +286,9 @@ public class ProceduralAnimation : MonoBehaviour
 
     public float GetAverageLegHeight()
     {
-        //to calculate body position and rase it when leg is moving based on legs distance to ground
-        float averageHeight = 0;
+        // calculate body position and raise it when leg is moving based on legs distance to ground
+        float averageHeight = 0f;
+
         for (int i = 0; i < nbLegs; ++i)
         {
             averageHeight += GetDistanceToGround(i);
@@ -266,7 +304,6 @@ public class ProceduralAnimation : MonoBehaviour
         return Mathf.Lerp(newLow, newHigh, t);
     }
 
-
     private void OnDrawGizmosSelected()
     {
         if (!showGizmoz || !Application.IsPlaying(this))
@@ -276,21 +313,35 @@ public class ProceduralAnimation : MonoBehaviour
 
         for (int i = 0; i < nbLegs; ++i)
         {
-            //target points
-            Vector3 v = transform.TransformPoint(
-            defaultLegPositions[i]) + velocity.normalized * Mathf.Clamp(velocity.magnitude, 0, velocityClamp * clampDevider) * velocityMultiplier;
+            // target points visualization
+            Vector3 v = transform.TransformPoint(defaultLegPositions[i]) +
+                        velocity.normalized *
+                        Mathf.Clamp(velocity.magnitude, 0, velocityClamp * clampDevider) *
+                        velocityMultiplier;
+
             Vector3 v2 = FitToTheGround(v, layerMask, legRayoffset, legRayLength, sphereCastRadius);
 
             Gizmos.color = Color.blue;
-            Gizmos.DrawSphere(v2, .2f);
+            Gizmos.DrawSphere(v2, 0.1f);
 
-            // default leg positions and ground check range 
             Gizmos.color = Color.green;
-            Gizmos.DrawRay(transform.TransformPoint(defaultLegPositions[i]) + Vector3.up * legRayoffset, -Vector3.up * legRayLength);
+            Gizmos.DrawSphere(legIktargets[i].position, 0.1f);
+
+            Gizmos.color = Color.red;
+            Gizmos.DrawRay(
+                transform.TransformPoint(defaultLegPositions[i]) + Vector3.up * legRayoffset,
+                -Vector3.up * legRayLength
+            );
             Gizmos.DrawWireSphere(transform.TransformPoint(defaultLegPositions[i]), sphereCastRadius);
         }
     }
-    public static Vector3 FitToTheGround(Vector3 origin, LayerMask layerMask, float yOffset, float rayLength, float sphereCastRadius)
+
+    public static Vector3 FitToTheGround(
+        Vector3 origin,
+        LayerMask layerMask,
+        float yOffset,
+        float rayLength,
+        float sphereCastRadius)
     {
         RaycastHit hit;
 
@@ -308,7 +359,12 @@ public class ProceduralAnimation : MonoBehaviour
         }
     }
 
-    public static bool IsValidStepPoint(Vector3 origin, LayerMask layerMask, float yOffset, float rayLength, float sphereCastRadius)
+    public static bool IsValidStepPoint(
+        Vector3 origin,
+        LayerMask layerMask,
+        float yOffset,
+        float rayLength,
+        float sphereCastRadius)
     {
         RaycastHit hit;
 
@@ -318,26 +374,20 @@ public class ProceduralAnimation : MonoBehaviour
         }
         else
         {
-            return false;
+            Vector3 point = origin;
+            Vector3 yOffsetVec = new Vector3(0, .01f, 0);
+
+            Collider[] hitColiiders = Physics.OverlapSphere(point + yOffsetVec, 0f);
+            bool isUnderCollider = Physics.Raycast(point, Vector3.up, 1f);
+
+            if (hitColiiders.Length > 0 || isUnderCollider)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
-
-    public static bool IsPointInsideCollider(Vector3 point)
-    {
-        // to make shure point is not on the collider edge 
-        Vector3 yOffset = new Vector3(0, .01f, 0);
-
-        Collider[] hitColiiders = Physics.OverlapSphere(point + yOffset, 0f);
-        bool isUnderCollider = Physics.Raycast(point, Vector3.up, 1);
-        if (hitColiiders.Length > 0 || isUnderCollider)
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-
-    }
-
 }

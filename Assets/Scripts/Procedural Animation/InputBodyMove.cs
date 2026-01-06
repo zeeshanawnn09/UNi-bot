@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class BodyMoveInput : MonoBehaviour
+public class InputBodyMove : MonoBehaviour
 {
     [Header("Character Input Values")]
     public Vector2 move;
