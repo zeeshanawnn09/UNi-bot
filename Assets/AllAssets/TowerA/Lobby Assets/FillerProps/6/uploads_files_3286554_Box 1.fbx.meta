@@ -3,7 +3,12 @@ guid: a394c749ec033554fa7c1c43483c1f66
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: https___www.cgtrader.com_halocan27  Like = _3
+    second: {fileID: 2100000, guid: cc0f3051a3d76e5418aff10e8355eeab, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
