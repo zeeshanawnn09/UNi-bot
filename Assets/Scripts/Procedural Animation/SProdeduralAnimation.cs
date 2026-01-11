@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class CCProceduralAnimation : MonoBehaviour
+public class SProceduralAnimation : MonoBehaviour
 {
     [Tooltip("Step distance is used to calculate step height. When the character makes a very short step there is no need to raise the foot all the way up, so if this step distance value is small, step height will be lower than usual.")]
     [SerializeField] private float stepDistance = 1f;
