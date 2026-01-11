@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
     public class BodyAlignmantt : MonoBehaviour
     {
-    [SerializeField] private ProceduralAnimation ProceduralAnimation;
+    [SerializeField] private RProceduralAnimation ProceduralAnimation;
     [SerializeField] private Vector3 bodyOffset;
     [SerializeField] private float bodySpeed = 10f;
     [Tooltip("How much legs affect body position")]

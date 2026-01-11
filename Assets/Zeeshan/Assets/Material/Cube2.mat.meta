@@ -1,5 +1,9 @@
 fileFormatVersion: 2
-guid: ab8332287af772c4caab8ebb5c931b39
+<<<<<<<< HEAD:Assets/Zeeshan/Assets/Material/Cube2.mat.meta
+guid: c34be13e9cdf10d4cbadc014cc07274d
+========
+guid: 498ba682441a1bb4cb062e5fd992cd39
+>>>>>>>> recovered-branch:Assets/AllAssets/Kitbash Slums/Elevator1.mat.meta
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 2100000
