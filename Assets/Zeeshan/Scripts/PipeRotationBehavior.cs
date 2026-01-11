@@ -8,7 +8,7 @@ public class PipeRotationBehavior : MonoBehaviour
     {
         // Reset Z so all pipes start aligned
         Vector3 euler = transform.localEulerAngles;
-        euler.z = 0f;
+        euler.z = 90f;
         transform.localRotation = Quaternion.Euler(euler);
     }
 

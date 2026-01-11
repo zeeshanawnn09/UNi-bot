@@ -597,7 +597,6 @@ GameObject:
   - component: {fileID: 2326326350030939538}
   - component: {fileID: 7660931905457447824}
   - component: {fileID: 8050814250187166135}
-  - component: {fileID: 3277308142935511992}
   m_Layer: 0
   m_Name: CCPlayer
   m_TagString: Untagged
@@ -714,26 +713,6 @@ MonoBehaviour:
   analogMovement: 1
   cursorLocked: 1
   cursorInputForLook: 1
---- !u!114 &3277308142935511992
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 617763519764701393}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3849d0f464f7b684cabc388dea117edf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  walkSpeed: 2
-  sprintSpeed: 5
-  rotationSpeed: 10
-  acceleration: 12
-  deceleration: 16
-  jumpHeight: 1.2
-  gravity: -9.81
-  cameraTransform: {fileID: 0}
 --- !u!1 &809108299514100568
 GameObject:
   m_ObjectHideFlags: 0
