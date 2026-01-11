@@ -4,17 +4,13 @@ public class DoorBehavior : MonoBehaviour
 {
     [SerializeField] private PipeRotationBehavior[] pipes;
     [SerializeField] private float targetPipeZ = 90f;
-    [SerializeField] private float targetDoorY = 90f;
+    [SerializeField] private float targetDoorX = 17f;
     [SerializeField] private float angleTolerance = 0.5f;
 
     private bool opened;
 
     private void Awake()
     {
-        // Start with door aligned at Y = 0
-        Vector3 euler = transform.localEulerAngles;
-        euler.y = 0f;
-        transform.localRotation = Quaternion.Euler(euler);
         opened = false;
     }
 
@@ -25,9 +21,10 @@ public class DoorBehavior : MonoBehaviour
 
         if (AllPipesAligned())
         {
-            Vector3 euler = transform.localEulerAngles;
-            euler.y = targetDoorY;
-            transform.localRotation = Quaternion.Euler(euler);
+            Debug.Log("All pipes aligned! Moving door to X = " + targetDoorX);
+            Vector3 pos = transform.localPosition;
+            pos.x = targetDoorX;
+            transform.localPosition = pos;
             opened = true;
         }
     }
@@ -38,7 +35,11 @@ public class DoorBehavior : MonoBehaviour
         {
             if (pipe == null) return false;
             float z = NormalizeAngle(pipe.transform.localEulerAngles.z);
-            if (Mathf.Abs(z - targetPipeZ) > angleTolerance)
+
+            // Check if pipe is at 0/360/-360 degrees (all normalize to 0)
+            bool atZero = Mathf.Abs(z) <= angleTolerance || Mathf.Abs(z - 360f) <= angleTolerance;
+
+            if (!atZero)
             {
                 return false;
             }
