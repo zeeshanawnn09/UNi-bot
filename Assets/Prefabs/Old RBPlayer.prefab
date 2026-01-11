@@ -472,7 +472,7 @@ GameObject:
   - component: {fileID: 3401039272787548417}
   - component: {fileID: 8622928392519209430}
   m_Layer: 7
-  m_Name: RBPlayer
+  m_Name: Old RBPlayer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

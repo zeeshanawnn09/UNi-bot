@@ -133,7 +133,7 @@ GameObject:
   - component: {fileID: 7441462614783058898}
   - component: {fileID: 1391512492172020920}
   - component: {fileID: 8678765329749489466}
-  - component: {fileID: 3943331782089430655}
+  - component: {fileID: 2848450166741219115}
   m_Layer: 7
   m_Name: Player Rig
   m_TagString: Untagged
@@ -198,7 +198,7 @@ MonoBehaviour:
   - m_Rig: {fileID: 118214832877978737}
     m_Active: 1
   m_Effectors: []
---- !u!114 &3943331782089430655
+--- !u!114 &2848450166741219115
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -207,7 +207,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 205007505240630721}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7cb08cfb6e5a94b47a965f2bc681a9da, type: 3}
+  m_Script: {fileID: 11500000, guid: 4a1e2d93b9272d84aa93ef22cae82a5a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   stepDistance: 5
@@ -224,6 +224,10 @@ MonoBehaviour:
   - 0.5
   timigsOffset: 0.25
   velocityClamp: 1.6
+  useRigidbodyVelocity: 1
+  bodyRigidbody: {fileID: 8728940060535418791}
+  cacheVelocityInFixedUpdate: 1
+  velocitySmoothing: 45
   layerMask:
     serializedVersion: 2
     m_Bits: 64
@@ -294,12 +298,6 @@ MonoBehaviour:
   legRayLength: 0.62
   sphereCastRadius: 0.18
   refreshTimingRate: 20
-  resyncOnEnableAndLand: 1
-  resyncSnapDistance: 1.25
-  resyncSnapToGround: 1
-  onlyStepWhenGrounded: 1
-  bodyGroundCheckOffset: 0.2
-  bodyGroundCheckDistance: 1.2
 --- !u!1 &217252156836363314
 GameObject:
   m_ObjectHideFlags: 0
@@ -2877,9 +2875,10 @@ GameObject:
   m_Component:
   - component: {fileID: 6533764199815834100}
   - component: {fileID: 5506685248731891814}
-  - component: {fileID: 7071135115213967893}
-  - component: {fileID: 3210023531890731498}
+  - component: {fileID: 8728940060535418791}
+  - component: {fileID: 6419811681905561481}
   - component: {fileID: 9010755688255396096}
+  - component: {fileID: 7657954061675843741}
   - component: {fileID: 8814313645839073174}
   - component: {fileID: 2242059418205351123}
   - component: {fileID: 2023154111378641642}
@@ -2938,8 +2937,35 @@ MonoBehaviour:
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
---- !u!143 &7071135115213967893
-CharacterController:
+--- !u!54 &8728940060535418791
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3325996385922743278}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!136 &6419811681905561481
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -2948,41 +2974,19 @@ CharacterController:
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 0
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
+  m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Height: 1
+  serializedVersion: 2
   m_Radius: 0.35
-  m_SlopeLimit: 45
-  m_StepOffset: 0.3
-  m_SkinWidth: 0.08
-  m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0.15, z: 0}
---- !u!114 &3210023531890731498
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3325996385922743278}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3849d0f464f7b684cabc388dea117edf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  walkSpeed: 3
-  sprintSpeed: 3
-  rotationSpeed: 10
-  acceleration: 12
-  deceleration: 16
-  jumpHeight: 2
-  gravity: -9.81
-  cameraTransform: {fileID: 0}
+  m_Height: 1
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.03, z: 0}
 --- !u!114 &9010755688255396096
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3001,6 +3005,30 @@ MonoBehaviour:
   analogMovement: 1
   cursorLocked: 1
   cursorInputForLook: 1
+--- !u!114 &7657954061675843741
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3325996385922743278}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a916e18d52c1bfc469270d648c40d18c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  walkSpeed: 3
+  sprintSpeed: 5
+  acceleration: 10
+  airAcceleration: 8
+  rotationSpeed: 5
+  jumpHeight: 1.2
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  groundCheck: {fileID: 6533764199815834100}
+  groundCheckRadius: 0.25
+  cameraTransform: {fileID: 6533764199815834100}
 --- !u!114 &8814313645839073174
 MonoBehaviour:
   m_ObjectHideFlags: 0
