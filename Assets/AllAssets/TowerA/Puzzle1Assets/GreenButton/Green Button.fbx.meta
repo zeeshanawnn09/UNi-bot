@@ -3,7 +3,42 @@ guid: 033d2fde2b7c4754ca441baadc0992dd
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Conveer
+    second: {fileID: 2100000, guid: 2843470e0b5fd6b4891f961faab2e1e8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Green
+    second: {fileID: 2100000, guid: 22ca74f99cb401f46957e3ed23c87320, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Metal
+    second: {fileID: 2100000, guid: 5421a1ad91adb044e8a664123c09343d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MetalLighter
+    second: {fileID: 2100000, guid: b205aae11b6fcc5479d1de64da511e90, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Red
+    second: {fileID: 2100000, guid: 57059420a5e9aed4f8bb0912677d5925, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Yellow
+    second: {fileID: 2100000, guid: 117e2f0b9ac38194e88da92cbcff0707, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: standardSurface1
+    second: {fileID: 2100000, guid: a692c35c6c10752439a44d08bc4e1e15, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

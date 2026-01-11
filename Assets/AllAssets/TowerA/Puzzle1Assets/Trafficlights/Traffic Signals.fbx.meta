@@ -3,7 +3,57 @@ guid: cf043d568f0e68f409468caaf7222e49
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Aluminum.001
+    second: {fileID: 2100000, guid: 889bf9476ea8855458bc29edec27ee11, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Green_Light_OFF2
+    second: {fileID: 2100000, guid: d32932603483b0a47bd2a2aebd9abfe8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Green_Light_ON1
+    second: {fileID: 2100000, guid: 7c24c73b0c7a66a43bc226502c1d3372, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: RED_LIGHT
+    second: {fileID: 2100000, guid: 04995d8e51bd8444b8e5169f2ff6da20, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Red_Light_OFF2
+    second: {fileID: 2100000, guid: 4f394c3c767df8d419387a6bacdc421c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Red_Light_ON1
+    second: {fileID: 2100000, guid: 6de02ffd9867eda43a1765c470267954, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: green_light
+    second: {fileID: 2100000, guid: 3a7023cd88abb824185a2cd599c7041a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: inner visor.001
+    second: {fileID: 2100000, guid: c3c94d9a8d8634848be55df382c37ba8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: rubber rim
+    second: {fileID: 2100000, guid: 6db5cc68b1cbdb34a81284385ba735b6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: wingnut1
+    second: {fileID: 2100000, guid: 16985f92390cd4c42989deacf907c456, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

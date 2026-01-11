@@ -3,7 +3,32 @@ guid: 6d20d97e153a45843b176f8b0f085bb1
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: aiStandardSurface4
+    second: {fileID: 2100000, guid: d597581bd35bc624b94e7a343ee19fb1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: aiStandardSurface6
+    second: {fileID: 2100000, guid: 1a9081afd2c616a42b6e54d1795c5c4a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: aiStandardSurface7
+    second: {fileID: 2100000, guid: c03a198f200436f46810c71c9dfd82dc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: aiStandardSurface8
+    second: {fileID: 2100000, guid: 40f2f2db3e21b5541908de0eb37ff33b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: screen
+    second: {fileID: 2100000, guid: a484b57a80eae3d4289a001b34d7034e, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
