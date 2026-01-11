@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 
-public class SProceduralAnimation : MonoBehaviour
+public class CCProceduralAnimation : MonoBehaviour
 {
     [Tooltip("Step distance is used to calculate step height. When the character makes a very short step there is no need to raise the foot all the way up, so if this step distance value is small, step height will be lower than usual.")]
     [SerializeField] private float stepDistance = 1f;
@@ -53,11 +53,27 @@ public class SProceduralAnimation : MonoBehaviour
     [Tooltip("Refresh timings rate. Updates timings and sets initial offsets. Example: fast pink robot in demo scene has this value set to 10.")]
     [SerializeField] private float refreshTimingRate = 60f;
 
+    [Header("Recovery / Enable")]
+    [Tooltip("When this component is enabled (or when landing), resync cached leg positions so feet don't lag behind.")]
+    [SerializeField] private bool resyncOnEnableAndLand = true;
+
+    [Tooltip("If a leg target is farther than this from its default anchor, snap it instantly on resync.")]
+    [SerializeField] private float resyncSnapDistance = 1.25f;
+
+    [Tooltip("On resync, snap legs to ground under their default anchors.")]
+    [SerializeField] private bool resyncSnapToGround = true;
+
+    [Header("Body Ground Check")]
+    [Tooltip("Prevents stepping while airborne (fixes jump weirdness).")]
+    [SerializeField] private bool onlyStepWhenGrounded = true;
+
+    [SerializeField] private float bodyGroundCheckOffset = 0.2f;
+    [SerializeField] private float bodyGroundCheckDistance = 1.2f;
+
     public EventHandler<Vector3> OnStepFinished;
 
     private Vector3[] lastLegPositions;
     private Vector3[] defaultLegPositions;
-    private Vector3[] raycastPoints;
     private Vector3[] targetStepPosition;
 
     private Vector3 velocity;
@@ -65,7 +81,6 @@ public class SProceduralAnimation : MonoBehaviour
     private Vector3 lastBodyPos;
 
     private float[] footTimings;
-    private float[] targetTimings;
     private float[] totalDistance;
     private float clampDevider;
     private float[] arcHeitMultiply;
@@ -74,6 +89,51 @@ public class SProceduralAnimation : MonoBehaviour
     private int indexTomove;
 
     private bool[] isLegMoving;
+
+    // Track running step coroutines so we can stop them cleanly
+    private Coroutine[] stepCoroutines;
+
+    private bool wasGrounded = true;
+
+    private void OnEnable()
+    {
+        if (!Application.isPlaying) return;
+
+        // If toggled on/off at runtime, prevent "catch up" stepping from stale cached data.
+        if (resyncOnEnableAndLand && legIktargets != null && legIktargets.Length > 0)
+        {
+            ResyncLegsImmediate();
+        }
+
+        // make sure timings are in sync
+        StartCoroutine(UpdateTimings(refreshTimingRate));
+    }
+
+    private void OnDisable()
+    {
+        if (!Application.isPlaying) return;
+
+        // Stop any step in progress so it doesn't keep moving feet after disable
+        if (stepCoroutines != null)
+        {
+            for (int i = 0; i < stepCoroutines.Length; i++)
+            {
+                if (stepCoroutines[i] != null)
+                {
+                    StopCoroutine(stepCoroutines[i]);
+                    stepCoroutines[i] = null;
+                }
+            }
+        }
+
+        if (isLegMoving != null)
+        {
+            for (int i = 0; i < isLegMoving.Length; i++)
+                isLegMoving[i] = false;
+        }
+
+        indexTomove = -1;
+    }
 
     private void Start()
     {
@@ -88,6 +148,8 @@ public class SProceduralAnimation : MonoBehaviour
         footTimings = new float[nbLegs];
         arcHeitMultiply = new float[nbLegs];
         totalDistance = new float[nbLegs];
+
+        stepCoroutines = new Coroutine[nbLegs];
 
         if (SetTimingsManually && manualTimings.Length != nbLegs)
         {
@@ -106,8 +168,16 @@ public class SProceduralAnimation : MonoBehaviour
             }
 
             lastLegPositions[i] = legIktargets[i].position;
+
+            // NOTE: You already fixed your default positions; keep whatever you currently use.
+            // If you're using body-local defaults, this should remain:
             defaultLegPositions[i] = legIktargets[i].localPosition;
         }
+
+        lastBodyPos = transform.position;
+        lastVelocity = Vector3.zero;
+
+        wasGrounded = IsBodyGrounded();
 
         // make sure timings are in sync
         StartCoroutine(UpdateTimings(refreshTimingRate));
@@ -115,6 +185,31 @@ public class SProceduralAnimation : MonoBehaviour
 
     private void Update()
     {
+        bool grounded = IsBodyGrounded();
+
+        // Land transition: resync to prevent long travel-back steps after a jump/disable period.
+        if (onlyStepWhenGrounded)
+        {
+            if (!grounded)
+            {
+                wasGrounded = false;
+
+                // Stop any steps mid-air so they don't try to plant feet on the ground while airborne
+                StopAllStepCoroutines();
+
+                // Still update body pos so velocity doesn't explode when landing
+                lastBodyPos = transform.position;
+                lastVelocity = Vector3.zero;
+                return;
+            }
+            else if (!wasGrounded)
+            {
+                wasGrounded = true;
+                if (resyncOnEnableAndLand)
+                    ResyncLegsImmediate();
+            }
+        }
+
         velocity = (transform.position - lastBodyPos) / Time.deltaTime;
         velocity = Vector3.MoveTowards(lastVelocity, velocity, Time.deltaTime * 45f);
         clampDevider = 1 / Remap(velocity.magnitude, 0, velocityClamp, 1, 2);
@@ -124,7 +219,6 @@ public class SProceduralAnimation : MonoBehaviour
         // Fit legs to the ground, but do NOT override legs that are currently stepping
         for (int i = 0; i < nbLegs; ++i)
         {
-            // Skip legs that are currently making a step
             if (isLegMoving[i])
                 continue;
 
@@ -142,10 +236,8 @@ public class SProceduralAnimation : MonoBehaviour
 
         for (int i = 0; i < nbLegs; ++i)
         {
-            // move legs whenever footTimings reaches the limit
             footTimings[i] += Time.deltaTime * cycleSpeed * cycleSpeedMultiplyer;
 
-            // do NOT start a new step on a leg that is already moving
             if (footTimings[i] >= cycleLimit && !isLegMoving[i])
             {
                 footTimings[i] = 0f;
@@ -176,14 +268,19 @@ public class SProceduralAnimation : MonoBehaviour
         if (targetStepPosition[index] != Vector3.zero &&
             IsValidStepPoint(targetStepPosition[index], layerMask, legRayoffset, legRayLength, sphereCastRadius))
         {
-            // IMPORTANT FIX: use the actual leg index here, not indexTomove
-            StartCoroutine(MakeStep(targetStepPosition[index], index));
+            // stop any existing step on this leg (safety)
+            if (stepCoroutines[index] != null)
+            {
+                StopCoroutine(stepCoroutines[index]);
+                stepCoroutines[index] = null;
+            }
+
+            stepCoroutines[index] = StartCoroutine(MakeStep(targetStepPosition[index], index));
         }
     }
 
     private IEnumerator MakeStep(Vector3 targetPosition, int index)
     {
-        // IMPORTANT FIX: mark this leg as moving while the step is in progress
         isLegMoving[index] = true;
 
         float current = 0f;
@@ -220,13 +317,13 @@ public class SProceduralAnimation : MonoBehaviour
         legIktargets[index].position = targetPosition;
         lastLegPositions[index] = legIktargets[index].position;
 
-        // Event for visual and sound effects
         if (totalDistance[index] > .3f)
         {
             OnStepFinished?.Invoke(this, targetPosition);
         }
 
         isLegMoving[index] = false;
+        stepCoroutines[index] = null;
     }
 
     private IEnumerator UpdateTimings(float time)
@@ -236,13 +333,9 @@ public class SProceduralAnimation : MonoBehaviour
         for (int i = 0; i < nbLegs; ++i)
         {
             if (SetTimingsManually)
-            {
                 footTimings[i] = manualTimings[i];
-            }
             else
-            {
                 footTimings[i] = i * timigsOffset;
-            }
         }
     }
 
@@ -263,10 +356,8 @@ public class SProceduralAnimation : MonoBehaviour
     {
         Vector3 leg = legIktargets[index].position;
         Ray ray = new Ray(leg + Vector3.up * .1f, -Vector3.up);
-        RaycastHit hit;
 
-        // keeping original signature pattern here
-        if (Physics.Raycast(ray, out hit, layerMask))
+        if (Physics.Raycast(ray, out RaycastHit hit, 10f, layerMask))
         {
             return Vector3.Distance(leg, hit.point);
         }
@@ -286,7 +377,6 @@ public class SProceduralAnimation : MonoBehaviour
 
     public float GetAverageLegHeight()
     {
-        // calculate body position and raise it when leg is moving based on legs distance to ground
         float averageHeight = 0f;
 
         for (int i = 0; i < nbLegs; ++i)
@@ -313,7 +403,6 @@ public class SProceduralAnimation : MonoBehaviour
 
         for (int i = 0; i < nbLegs; ++i)
         {
-            // target points visualization
             Vector3 v = transform.TransformPoint(defaultLegPositions[i]) +
                         velocity.normalized *
                         Mathf.Clamp(velocity.magnitude, 0, velocityClamp * clampDevider) *
@@ -343,9 +432,7 @@ public class SProceduralAnimation : MonoBehaviour
         float rayLength,
         float sphereCastRadius)
     {
-        RaycastHit hit;
-
-        if (Physics.Raycast(origin + Vector3.up * yOffset, -Vector3.up, out hit, rayLength, layerMask))
+        if (Physics.Raycast(origin + Vector3.up * yOffset, -Vector3.up, out RaycastHit hit, rayLength, layerMask))
         {
             return hit.point;
         }
@@ -366,9 +453,7 @@ public class SProceduralAnimation : MonoBehaviour
         float rayLength,
         float sphereCastRadius)
     {
-        RaycastHit hit;
-
-        if (Physics.SphereCast(origin + Vector3.up * yOffset, sphereCastRadius, -Vector3.up, out hit, rayLength, layerMask))
+        if (Physics.SphereCast(origin + Vector3.up * yOffset, sphereCastRadius, -Vector3.up, out RaycastHit hit, rayLength, layerMask))
         {
             return true;
         }
@@ -380,14 +465,68 @@ public class SProceduralAnimation : MonoBehaviour
             Collider[] hitColiiders = Physics.OverlapSphere(point + yOffsetVec, 0f);
             bool isUnderCollider = Physics.Raycast(point, Vector3.up, 1f);
 
-            if (hitColiiders.Length > 0 || isUnderCollider)
+            return hitColiiders.Length > 0 || isUnderCollider;
+        }
+    }
+
+    private bool IsBodyGrounded()
+    {
+        Vector3 start = transform.position + Vector3.up * bodyGroundCheckOffset;
+        return Physics.Raycast(start, Vector3.down, bodyGroundCheckDistance, layerMask);
+    }
+
+    private void StopAllStepCoroutines()
+    {
+        if (stepCoroutines == null) return;
+
+        for (int i = 0; i < stepCoroutines.Length; i++)
+        {
+            if (stepCoroutines[i] != null)
             {
-                return true;
+                StopCoroutine(stepCoroutines[i]);
+                stepCoroutines[i] = null;
             }
-            else
+            isLegMoving[i] = false;
+        }
+        indexTomove = -1;
+    }
+
+    private void ResyncLegsImmediate()
+    {
+        // Reset motion history so velocity prediction doesn't spike
+        lastBodyPos = transform.position;
+        velocity = Vector3.zero;
+        lastVelocity = Vector3.zero;
+        clampDevider = 1f;
+
+        indexTomove = -1;
+
+        // Stop any step in progress (prevents "travel back" from old step)
+        StopAllStepCoroutines();
+
+        for (int i = 0; i < nbLegs; i++)
+        {
+            // desired anchor under the body
+            Vector3 anchorWorld = transform.TransformPoint(defaultLegPositions[i]);
+            Vector3 desired = resyncSnapToGround
+                ? FitToTheGround(anchorWorld, layerMask, legRayoffset, legRayLength, sphereCastRadius)
+                : anchorWorld;
+
+            float dist = Vector3.Distance(legIktargets[i].position, desired);
+
+            // If the IK target is far away (left behind), snap it instantly.
+            if (dist > resyncSnapDistance)
             {
-                return false;
+                legIktargets[i].position = desired;
             }
+
+            lastLegPositions[i] = legIktargets[i].position;
+            targetStepPosition[i] = lastLegPositions[i];
+
+            // Reset timing phase so legs don't all fire at once after resync
+            footTimings[i] = SetTimingsManually ? manualTimings[i] : i * timigsOffset;
+            totalDistance[i] = 0f;
+            arcHeitMultiply[i] = 0f;
         }
     }
 }
