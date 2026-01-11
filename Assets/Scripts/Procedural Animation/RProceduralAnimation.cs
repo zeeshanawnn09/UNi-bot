@@ -2,7 +2,7 @@
 using System.Collections;
 using UnityEngine;
 
-public class RBProceduralAnimation : MonoBehaviour
+public class RProceduralAnimation : MonoBehaviour
 {
     [SerializeField] private float stepDistance = 1f;
     [SerializeField] private float stepHeight = 1f;
