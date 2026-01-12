@@ -8,7 +8,7 @@
   - Layers:
     - Default, TransparentFX, Ignore Raycast, Scannable, Water, UI, Geometry, Player
 - Active game object:
-  - Name: FullHealthNotifier_txt
-  - Tag: Untagged
-  - Layer: UI
+  - Name: Main Camera
+  - Tag: MainCamera
+  - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->
