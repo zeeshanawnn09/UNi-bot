@@ -396,16 +396,34 @@ public class CCProceduralAnimation : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        if (!showGizmoz || !Application.IsPlaying(this))
-        {
-            return;
-        }
+        if (!showGizmoz) return;
+        if (legIktargets == null || legIktargets.Length == 0) return;
 
-        for (int i = 0; i < nbLegs; ++i)
+        int legsCount = Application.isPlaying ? nbLegs : legIktargets.Length;
+
+        Vector3 bodyStart = transform.position + Vector3.up * bodyGroundCheckOffset;
+        Vector3 bodyEnd = bodyStart + Vector3.down * bodyGroundCheckDistance;
+
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawSphere(bodyStart, 0.05f);
+        Gizmos.DrawLine(bodyStart, bodyEnd);
+        Gizmos.DrawSphere(bodyEnd, 0.05f);
+
+        for (int i = 0; i < legsCount; ++i)
         {
-            Vector3 v = transform.TransformPoint(defaultLegPositions[i]) +
-                        velocity.normalized *
-                        Mathf.Clamp(velocity.magnitude, 0, velocityClamp * clampDevider) *
+            if (legIktargets[i] == null) continue;
+
+            Vector3 defaultLocal =
+                (defaultLegPositions != null && defaultLegPositions.Length > i)
+                    ? defaultLegPositions[i]
+                    : legIktargets[i].localPosition;
+
+            Vector3 vel = Application.isPlaying ? velocity : Vector3.zero;
+            float clampDiv = Application.isPlaying ? clampDevider : 1f;
+
+            Vector3 v = transform.TransformPoint(defaultLocal) +
+                        (vel.sqrMagnitude > 0.0001f ? vel.normalized : Vector3.zero) *
+                        Mathf.Clamp(vel.magnitude, 0, velocityClamp * clampDiv) *
                         velocityMultiplier;
 
             Vector3 v2 = FitToTheGround(v, layerMask, legRayoffset, legRayLength, sphereCastRadius);
@@ -417,13 +435,24 @@ public class CCProceduralAnimation : MonoBehaviour
             Gizmos.DrawSphere(legIktargets[i].position, 0.1f);
 
             Gizmos.color = Color.red;
-            Gizmos.DrawRay(
-                transform.TransformPoint(defaultLegPositions[i]) + Vector3.up * legRayoffset,
-                -Vector3.up * legRayLength
-            );
-            Gizmos.DrawWireSphere(transform.TransformPoint(defaultLegPositions[i]), sphereCastRadius);
+            Gizmos.DrawRay(transform.TransformPoint(defaultLocal) + Vector3.up * legRayoffset, -Vector3.up * legRayLength);
+            Gizmos.DrawWireSphere(transform.TransformPoint(defaultLocal), sphereCastRadius);
+
+            Vector3 castStart = legIktargets[i].position + Vector3.up * legRayoffset;
+            Vector3 castEnd = castStart + Vector3.down * legRayLength;
+
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawLine(castStart, castEnd);
+
+            Gizmos.color = new Color(0f, 1f, 1f, 0.25f);
+            Gizmos.DrawWireSphere(castStart, sphereCastRadius);
+
+            Gizmos.color = Color.white;
+            Gizmos.DrawSphere(legIktargets[i].position, 0.03f);
         }
     }
+
+
 
     public static Vector3 FitToTheGround(
         Vector3 origin,

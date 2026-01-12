@@ -615,8 +615,9 @@ MonoBehaviour:
   groundLayers:
     serializedVersion: 2
     m_Bits: 64
-  groundCheck: {fileID: 1305139704567106915}
-  groundCheckRadius: 0.25
+  groundCheckDistance: 0.15
+  groundCheckSkin: 0.02
+  coyoteTime: 0.08
   cameraTransform: {fileID: 1305139704567106915}
 --- !u!114 &2411095773601798822
 MonoBehaviour:
@@ -1401,7 +1402,7 @@ GameObject:
   - component: {fileID: 7561102652737832291}
   - component: {fileID: 4714200134958564451}
   - component: {fileID: 2868314818548735078}
-  - component: {fileID: 5186652478951004851}
+  - component: {fileID: 2231232935949421752}
   m_Layer: 7
   m_Name: UNi_Bot_rigNEW
   m_TagString: Untagged
@@ -1474,7 +1475,7 @@ MonoBehaviour:
       position: {x: 0, y: 0, z: 0}
       rotation: {x: 0, y: 0, z: 0}
     m_Visible: 0
---- !u!114 &5186652478951004851
+--- !u!114 &2231232935949421752
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1483,30 +1484,26 @@ MonoBehaviour:
   m_GameObject: {fileID: 1986256780404669681}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4a1e2d93b9272d84aa93ef22cae82a5a, type: 3}
+  m_Script: {fileID: 11500000, guid: b85fb35b7ff4b924ca5d22f6d5b13c41, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  stepDistance: 5
-  stepHeight: 2
+  stepDistance: 1
+  stepHeight: 1
   stepSpeed: 5
-  velocityMultiplier: 1
-  cycleSpeed: 2
+  velocityMultiplier: 0.4
+  cycleSpeed: 1
   cycleLimit: 1
-  SetTimingsManually: 1
-  manualTimings:
-  - 0.5
-  - 0
-  - 0
-  - 0.5
+  SetTimingsManually: 0
+  manualTimings: []
   timigsOffset: 0.25
-  velocityClamp: 1.6
+  velocityClamp: 4
   useRigidbodyVelocity: 1
-  bodyRigidbody: {fileID: 8157537994182880965}
+  bodyRigidbody: {fileID: 0}
   cacheVelocityInFixedUpdate: 1
   velocitySmoothing: 45
   layerMask:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 0
   legArcPathY:
     serializedVersion: 2
     m_Curve:
@@ -1564,16 +1561,12 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  legIktargets:
-  - {fileID: 7533300111268646444}
-  - {fileID: 5485540669224649394}
-  - {fileID: 844468622072970322}
-  - {fileID: 4911790997992381000}
+  legIktargets: []
   showGizmoz: 1
-  legRayoffset: 0.43
-  legRayLength: 0.62
-  sphereCastRadius: 0.18
-  refreshTimingRate: 20
+  legRayoffset: 3
+  legRayLength: 6
+  sphereCastRadius: 1
+  refreshTimingRate: 60
 --- !u!1 &2144127448550360095
 GameObject:
   m_ObjectHideFlags: 0
