@@ -10,7 +10,7 @@ public class CCAnimAndProceduralController : MonoBehaviour
     [SerializeField] private RigBuilder rigBuilder;
 
     [Header("Animator Params (must match your Animator)")]
-    [SerializeField] private string plantingBool = "Planting";
+    [SerializeField] private string plantingTrigger = "Planting";   // CHANGED: now a Trigger
     [SerializeField] private string midAirBool = "MidAir";
     [SerializeField] private string idleBool = "Idle";
     [SerializeField] private string jumpedTrigger = "Jumped";
@@ -26,8 +26,16 @@ public class CCAnimAndProceduralController : MonoBehaviour
     [Tooltip("If true, RigBuilder will only run while grounded.")]
     [SerializeField] private bool rigOnlyWhenGrounded = true;
 
+    // Procedural rig suppression window after planting starts (prevents rig fighting the planting anim)
+    [Header("Planting")]
+    [Tooltip("Seconds to keep RigBuilder disabled after Planting trigger fires (match/cover your planting clip length).")]
+    [SerializeField] private float plantingRigDisableSeconds = 1.0f;
+
     private float _idleTimer = 0f;
     private bool _wasGrounded = true;
+
+    private bool _plantingLock = false;
+    private float _plantingLockTimer = 0f;
 
     private void Reset()
     {
@@ -51,6 +59,8 @@ public class CCAnimAndProceduralController : MonoBehaviour
     {
         if (bodyMovement) _wasGrounded = bodyMovement.IsGrounded;
         _idleTimer = 0f;
+        _plantingLock = false;
+        _plantingLockTimer = 0f;
     }
 
     private void LateUpdate()
@@ -78,10 +88,20 @@ public class CCAnimAndProceduralController : MonoBehaviour
         }
         _wasGrounded = grounded;
 
-        bool planting = GetBoolSafe(plantingBool);
+        // --- Planting lock timer ---
+        if (_plantingLock)
+        {
+            _plantingLockTimer -= Time.deltaTime;
+            if (_plantingLockTimer <= 0f)
+            {
+                _plantingLock = false;
+                _plantingLockTimer = 0f;
+                // Rig can re-enable naturally below when conditions allow.
+            }
+        }
 
-        // Idle only when grounded, not moving, and not planting
-        if (!grounded || moving || planting)
+        // Idle only when grounded, not moving, and not in planting lock
+        if (!grounded || moving || _plantingLock)
         {
             _idleTimer = 0f;
             SetBoolSafe(idleBool, false);
@@ -101,8 +121,8 @@ public class CCAnimAndProceduralController : MonoBehaviour
         {
             bool allowRig =
                 moving &&
-                !planting &&
                 !idle &&
+                !_plantingLock &&
                 (!rigOnlyWhenGrounded || grounded) &&
                 !midAir;
 
@@ -110,24 +130,29 @@ public class CCAnimAndProceduralController : MonoBehaviour
         }
     }
 
-    // 3D button calls this
+    // Button calls this to start planting animation (TRIGGER)
     public void StartPlanting()
     {
-        // Rig OFF immediately
+        // Rig OFF immediately and lock it for a short duration so it can't fight the animation.
+        _plantingLock = true;
+        _plantingLockTimer = Mathf.Max(0f, plantingRigDisableSeconds);
         SetRigEnabled(false);
 
-        // animator values
-        SetBoolSafe(plantingBool, true);
+        // Fire trigger to play planting animation.
+        ResetTriggerSafe(plantingTrigger); // ensures clean retrigger
+        SetTriggerSafe(plantingTrigger);
+
+        // Cancel idle immediately.
         SetBoolSafe(idleBool, false);
         _idleTimer = 0f;
     }
 
-    // Call this from an Animation Event at the end of Digging (recommended),
-    // OR call it from your button when you want to stop.
+    // OPTIONAL: Call from an Animation Event at the end of the planting/dig clip
+    // if you want the rig to be allowed again immediately (instead of waiting the timer).
     public void EndPlanting()
     {
-        SetBoolSafe(plantingBool, false);
-        _idleTimer = 0f;
+        _plantingLock = false;
+        _plantingLockTimer = 0f;
         // Rig will re-enable automatically next LateUpdate if moving + grounded etc.
     }
 
