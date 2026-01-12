@@ -698,9 +698,17 @@ PrefabInstance:
       propertyPath: pointLight
       value: 
       objectReference: {fileID: 715657242}
+    - target: {fileID: 3092054202572557217, guid: 25b878952da36994984a5d41ea300aaa, type: 3}
+      propertyPath: plantingDurationSeconds
+      value: 9.3
+      objectReference: {fileID: 0}
     - target: {fileID: 3325996385922743278, guid: 25b878952da36994984a5d41ea300aaa, type: 3}
       propertyPath: m_Name
       value: CC Player
+      objectReference: {fileID: 0}
+    - target: {fileID: 3325996385922743278, guid: 25b878952da36994984a5d41ea300aaa, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3882236573164415990, guid: 25b878952da36994984a5d41ea300aaa, type: 3}
       propertyPath: cameraTransform
@@ -820,7 +828,7 @@ PrefabInstance:
     - target: {fileID: 5042286949317384652, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
       propertyPath: target
       value: 
-      objectReference: {fileID: 1498786917}
+      objectReference: {fileID: 1273578853}
     - target: {fileID: 5042286949317384652, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
       propertyPath: distance
       value: 2
@@ -835,7 +843,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5842335866903980465, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8445952653821402417, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
       propertyPath: m_LocalPosition.x
@@ -882,6 +890,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
+--- !u!4 &1215064043 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8445952653821402417, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
+  m_PrefabInstance: {fileID: 1242581627}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1242581627
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -893,7 +906,7 @@ PrefabInstance:
     - target: {fileID: 5042286949317384652, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
       propertyPath: target
       value: 
-      objectReference: {fileID: 1273578853}
+      objectReference: {fileID: 1498786917}
     - target: {fileID: 5042286949317384652, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
       propertyPath: distance
       value: 2
@@ -981,14 +994,10 @@ PrefabInstance:
     - target: {fileID: 1208487034326629606, guid: 7fbd1da22bfe8174e830a71f6b21e93c, type: 3}
       propertyPath: cameraTransform
       value: 
-      objectReference: {fileID: 1860883757}
+      objectReference: {fileID: 1215064043}
     - target: {fileID: 2876275956910453568, guid: 7fbd1da22bfe8174e830a71f6b21e93c, type: 3}
       propertyPath: m_Name
       value: RB Player (1)
-      objectReference: {fileID: 0}
-    - target: {fileID: 2876275956910453568, guid: 7fbd1da22bfe8174e830a71f6b21e93c, type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7336842221675697957, guid: 7fbd1da22bfe8174e830a71f6b21e93c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1160,6 +1169,6 @@ SceneRoots:
   - {fileID: 170714879}
   - {fileID: 369106262}
   - {fileID: 521858538}
-  - {fileID: 1242581627}
-  - {fileID: 1532886394}
   - {fileID: 877623424}
+  - {fileID: 1532886394}
+  - {fileID: 1242581627}

@@ -2076,8 +2076,7 @@ MonoBehaviour:
   idleDelaySeconds: 10
   moveSpeedThreshold: 0.15
   rigOnlyWhenGrounded: 1
-  rigOnlyWhenMoving: 1
-  plantingRigDisableSeconds: 1
+  plantingDurationSeconds: 9.3
 --- !u!1 &2877798004438184262
 GameObject:
   m_ObjectHideFlags: 0

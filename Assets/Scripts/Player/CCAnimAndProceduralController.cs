@@ -10,7 +10,7 @@ public class CCAnimAndProceduralController : MonoBehaviour
     [SerializeField] private RigBuilder rigBuilder;
 
     [Header("Animator Params (must match your Animator)")]
-    [SerializeField] private string plantingTrigger = "Planting";   // CHANGED: now a Trigger
+    [SerializeField] private string plantingTrigger = "Planting"; // Trigger
     [SerializeField] private string midAirBool = "MidAir";
     [SerializeField] private string idleBool = "Idle";
     [SerializeField] private string jumpedTrigger = "Jumped";
@@ -26,16 +26,15 @@ public class CCAnimAndProceduralController : MonoBehaviour
     [Tooltip("If true, RigBuilder will only run while grounded.")]
     [SerializeField] private bool rigOnlyWhenGrounded = true;
 
-    // Procedural rig suppression window after planting starts (prevents rig fighting the planting anim)
-    [Header("Planting")]
-    [Tooltip("Seconds to keep RigBuilder disabled after Planting trigger fires (match/cover your planting clip length).")]
-    [SerializeField] private float plantingRigDisableSeconds = 1.0f;
+    [Header("Planting (Timer Lock)")]
+    [Tooltip("How long planting lasts. While active: movement OFF, rig OFF, button spam ignored.")]
+    [SerializeField] private float plantingDurationSeconds = 1.2f;
 
     private float _idleTimer = 0f;
     private bool _wasGrounded = true;
 
-    private bool _plantingLock = false;
-    private float _plantingLockTimer = 0f;
+    private bool _isPlanting = false;
+    private float _plantingTimer = 0f;
 
     private void Reset()
     {
@@ -58,118 +57,133 @@ public class CCAnimAndProceduralController : MonoBehaviour
     private void Start()
     {
         if (bodyMovement) _wasGrounded = bodyMovement.IsGrounded;
+
         _idleTimer = 0f;
-        _plantingLock = false;
-        _plantingLockTimer = 0f;
+        _isPlanting = false;
+        _plantingTimer = 0f;
+
+        SetBoolSafe(idleBool, false);
     }
 
     private void LateUpdate()
     {
         if (!animator || !bodyMovement) return;
 
-        // --- READ movement state ---
         bool grounded = bodyMovement.IsGrounded;
+
+        // --- Planting timer ---
+        if (_isPlanting)
+        {
+            _plantingTimer -= Time.deltaTime;
+            if (_plantingTimer <= 0f)
+            {
+                _isPlanting = false;
+                _plantingTimer = 0f;
+
+                if (bodyMovement) bodyMovement.enabled = true;
+            }
+        }
+
+        // --- READ movement state (may be stale while bodyMovement disabled; planting overrides anyway) ---
         Vector3 v = bodyMovement.CurrentVelocity;
         float horizontalSpeed = new Vector3(v.x, 0f, v.z).magnitude;
         bool moving = horizontalSpeed > moveSpeedThreshold;
 
-        // --- WRITE Animator values only ---
+        // --- Animator values ---
         SetBoolSafe(midAirBool, !grounded);
 
-        // Jump trigger on takeoff (grounded -> not grounded)
         if (_wasGrounded && !grounded)
-        {
             SetTriggerSafe(jumpedTrigger);
-        }
         else if (!_wasGrounded && grounded)
-        {
-            // optional cleanup (doesn't hurt)
             ResetTriggerSafe(jumpedTrigger);
-        }
+
         _wasGrounded = grounded;
 
-        // --- Planting lock timer ---
-        if (_plantingLock)
-        {
-            _plantingLockTimer -= Time.deltaTime;
-            if (_plantingLockTimer <= 0f)
-            {
-                _plantingLock = false;
-                _plantingLockTimer = 0f;
-                // Rig can re-enable naturally below when conditions allow.
-            }
-        }
+        // --- Idle (your 1..5 loop), but never while planting ---
+        bool idle = GetBoolSafe(idleBool);
 
-        // Idle only when grounded, not moving, and not in planting lock
-        if (!grounded || moving || _plantingLock)
+        if (_isPlanting)
         {
             _idleTimer = 0f;
-            SetBoolSafe(idleBool, false);
+            if (idle) SetBoolSafe(idleBool, false);
+        }
+        else if (!grounded || moving)
+        {
+            _idleTimer = 0f;
+            if (idle) SetBoolSafe(idleBool, false);
         }
         else
         {
-            _idleTimer += Time.deltaTime;
-            if (_idleTimer >= idleDelaySeconds)
-                SetBoolSafe(idleBool, true);
+            // grounded + stopped
+            if (!idle)
+            {
+                _idleTimer += Time.deltaTime;
+                if (_idleTimer >= idleDelaySeconds)
+                {
+                    SetBoolSafe(idleBool, true);
+                    _idleTimer = idleDelaySeconds;
+                }
+            }
         }
 
-        bool idle = GetBoolSafe(idleBool);
-        bool midAir = !grounded;
+        idle = GetBoolSafe(idleBool);
 
         // --- RigBuilder on/off ---
         if (rigBuilder)
         {
-            bool allowRig =
-                moving &&
-                !idle &&
-                !_plantingLock &&
-                (!rigOnlyWhenGrounded || grounded) &&
-                !midAir;
+            // Disable rig only when:
+            // - planting
+            // - midAir (if rigOnlyWhenGrounded)
+            // - idle (after timer)
+            bool allowRig = true;
+
+            if (_isPlanting) allowRig = false;
+
+            if (rigOnlyWhenGrounded && !grounded) allowRig = false;
+
+            if (idle) allowRig = false;
 
             SetRigEnabled(allowRig);
         }
     }
 
-    // Button calls this to start planting animation (TRIGGER)
+    // Button calls this (PUBLIC)
     public void StartPlanting()
     {
-        // Rig OFF immediately and lock it for a short duration so it can't fight the animation.
-        _plantingLock = true;
-        _plantingLockTimer = Mathf.Max(0f, plantingRigDisableSeconds);
-        SetRigEnabled(false);
+        if (_isPlanting) return; // blocks spam / restart
 
-        // Fire trigger to play planting animation.
-        ResetTriggerSafe(plantingTrigger); // ensures clean retrigger
-        SetTriggerSafe(plantingTrigger);
+        // optional: only allow planting while grounded
+        if (bodyMovement && !bodyMovement.IsGrounded) return;
 
-        // Cancel idle immediately.
+        _isPlanting = true;
+        _plantingTimer = Mathf.Max(0.01f, plantingDurationSeconds);
+
+        // stop movement
+        if (bodyMovement) bodyMovement.enabled = false;
+
+        // cancel idle immediately
         SetBoolSafe(idleBool, false);
         _idleTimer = 0f;
-    }
 
-    // OPTIONAL: Call from an Animation Event at the end of the planting/dig clip
-    // if you want the rig to be allowed again immediately (instead of waiting the timer).
-    public void EndPlanting()
-    {
-        _plantingLock = false;
-        _plantingLockTimer = 0f;
-        // Rig will re-enable automatically next LateUpdate if moving + grounded etc.
+        // rig OFF immediately
+        SetRigEnabled(false);
+
+        // fire planting trigger
+        SetTriggerSafe(plantingTrigger);
     }
 
     private void SetRigEnabled(bool enabled)
     {
         if (!rigBuilder) return;
-
         if (rigBuilder.enabled == enabled) return;
 
         rigBuilder.enabled = enabled;
 
-        // When re-enabling, rebuild the rig so constraints update immediately.
         if (enabled)
             rigBuilder.Build();
     }
 
-    // --- Safe Animator helpers (no other side effects) ---
+    // --- Safe Animator helpers ---
     private bool HasParam(string name, AnimatorControllerParameterType type)
     {
         if (string.IsNullOrEmpty(name) || !animator) return false;
