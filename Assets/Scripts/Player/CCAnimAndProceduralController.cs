@@ -1,15 +1,16 @@
 using UnityEngine;
+using UnityEngine.Animations.Rigging;
 
 [DisallowMultipleComponent]
-public class AnimAndProceduralController : MonoBehaviour
+public class CCAnimAndProceduralController : MonoBehaviour
 {
     [Header("Refs")]
     [SerializeField] private Animator animator;
     [SerializeField] private CCBodyMovement bodyMovement;
-    [SerializeField] private CCProceduralAnimation procedural;
+    [SerializeField] private RigBuilder rigBuilder;
 
     [Header("Animator Params (must match your Animator)")]
-    [SerializeField] private string plantingBool = "Planting";
+    [SerializeField] private string plantingTrigger = "Planting";   // CHANGED: now a Trigger
     [SerializeField] private string midAirBool = "MidAir";
     [SerializeField] private string idleBool = "Idle";
     [SerializeField] private string jumpedTrigger = "Jumped";
@@ -21,35 +22,45 @@ public class AnimAndProceduralController : MonoBehaviour
     [Tooltip("Horizontal speed below this counts as not moving.")]
     [SerializeField] private float moveSpeedThreshold = 0.15f;
 
-    [Header("Procedural Enable Rule")]
-    [Tooltip("If true, procedural feet will only run while grounded.")]
-    [SerializeField] private bool proceduralOnlyWhenGrounded = true;
+    [Header("RigBuilder Enable Rule")]
+    [Tooltip("If true, RigBuilder will only run while grounded.")]
+    [SerializeField] private bool rigOnlyWhenGrounded = true;
+
+    // Procedural rig suppression window after planting starts (prevents rig fighting the planting anim)
+    [Header("Planting")]
+    [Tooltip("Seconds to keep RigBuilder disabled after Planting trigger fires (match/cover your planting clip length).")]
+    [SerializeField] private float plantingRigDisableSeconds = 1.0f;
 
     private float _idleTimer = 0f;
     private bool _wasGrounded = true;
+
+    private bool _plantingLock = false;
+    private float _plantingLockTimer = 0f;
 
     private void Reset()
     {
         animator = GetComponentInChildren<Animator>();
         bodyMovement = GetComponent<CCBodyMovement>();
-        procedural = GetComponentInChildren<CCProceduralAnimation>();
+        rigBuilder = GetComponentInChildren<RigBuilder>();
     }
 
     private void Awake()
     {
         if (!animator) animator = GetComponentInChildren<Animator>();
         if (!bodyMovement) bodyMovement = GetComponent<CCBodyMovement>();
-        if (!procedural) procedural = GetComponentInChildren<CCProceduralAnimation>();
+        if (!rigBuilder) rigBuilder = GetComponentInChildren<RigBuilder>();
 
-        if (!animator) Debug.LogError("AnimAndProceduralController: Missing Animator (child).");
-        if (!bodyMovement) Debug.LogError("AnimAndProceduralController: Missing CCBodyMovement (same GO).");
-        if (!procedural) Debug.LogError("AnimAndProceduralController: Missing CCProceduralAnimation (child).");
+        if (!animator) Debug.LogError("CCAnimAndProceduralController: Missing Animator (child).");
+        if (!bodyMovement) Debug.LogError("CCAnimAndProceduralController: Missing CCBodyMovement (same GO).");
+        if (!rigBuilder) Debug.LogWarning("CCAnimAndProceduralController: Missing RigBuilder (child).");
     }
 
     private void Start()
     {
         if (bodyMovement) _wasGrounded = bodyMovement.IsGrounded;
         _idleTimer = 0f;
+        _plantingLock = false;
+        _plantingLockTimer = 0f;
     }
 
     private void LateUpdate()
@@ -77,10 +88,20 @@ public class AnimAndProceduralController : MonoBehaviour
         }
         _wasGrounded = grounded;
 
-        bool planting = GetBoolSafe(plantingBool);
+        // --- Planting lock timer ---
+        if (_plantingLock)
+        {
+            _plantingLockTimer -= Time.deltaTime;
+            if (_plantingLockTimer <= 0f)
+            {
+                _plantingLock = false;
+                _plantingLockTimer = 0f;
+                // Rig can re-enable naturally below when conditions allow.
+            }
+        }
 
-        // Idle only when grounded, not moving, and not planting
-        if (!grounded || moving || planting)
+        // Idle only when grounded, not moving, and not in planting lock
+        if (!grounded || moving || _plantingLock)
         {
             _idleTimer = 0f;
             SetBoolSafe(idleBool, false);
@@ -95,40 +116,57 @@ public class AnimAndProceduralController : MonoBehaviour
         bool idle = GetBoolSafe(idleBool);
         bool midAir = !grounded;
 
-        // --- Procedural on/off (optional but allowed as you said) ---
-        if (procedural)
+        // --- RigBuilder on/off ---
+        if (rigBuilder)
         {
-            bool allowProcedural =
+            bool allowRig =
                 moving &&
-                !planting &&
                 !idle &&
-                (!proceduralOnlyWhenGrounded || grounded) &&
+                !_plantingLock &&
+                (!rigOnlyWhenGrounded || grounded) &&
                 !midAir;
 
-            if (procedural.enabled != allowProcedural)
-                procedural.enabled = allowProcedural;
+            SetRigEnabled(allowRig);
         }
     }
 
-    // 3D button calls this
+    // Button calls this to start planting animation (TRIGGER)
     public void StartPlanting()
     {
-        // procedural OFF immediately
-        if (procedural) procedural.enabled = false;
+        // Rig OFF immediately and lock it for a short duration so it can't fight the animation.
+        _plantingLock = true;
+        _plantingLockTimer = Mathf.Max(0f, plantingRigDisableSeconds);
+        SetRigEnabled(false);
 
-        // animator values
-        SetBoolSafe(plantingBool, true);
+        // Fire trigger to play planting animation.
+        ResetTriggerSafe(plantingTrigger); // ensures clean retrigger
+        SetTriggerSafe(plantingTrigger);
+
+        // Cancel idle immediately.
         SetBoolSafe(idleBool, false);
         _idleTimer = 0f;
     }
 
-    // Call this from an Animation Event at the end of Digging (recommended),
-    // OR call it from your button when you want to stop.
+    // OPTIONAL: Call from an Animation Event at the end of the planting/dig clip
+    // if you want the rig to be allowed again immediately (instead of waiting the timer).
     public void EndPlanting()
     {
-        SetBoolSafe(plantingBool, false);
-        _idleTimer = 0f;
-        // procedural will re-enable automatically next LateUpdate if moving + grounded etc.
+        _plantingLock = false;
+        _plantingLockTimer = 0f;
+        // Rig will re-enable automatically next LateUpdate if moving + grounded etc.
+    }
+
+    private void SetRigEnabled(bool enabled)
+    {
+        if (!rigBuilder) return;
+
+        if (rigBuilder.enabled == enabled) return;
+
+        rigBuilder.enabled = enabled;
+
+        // When re-enabling, rebuild the rig so constraints update immediately.
+        if (enabled)
+            rigBuilder.Build();
     }
 
     // --- Safe Animator helpers (no other side effects) ---
