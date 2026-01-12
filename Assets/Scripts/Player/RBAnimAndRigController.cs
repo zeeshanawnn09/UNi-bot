@@ -1,12 +1,13 @@
 using UnityEngine;
+using UnityEngine.Animations.Rigging;
 
 [DisallowMultipleComponent]
-public class AnimAndProceduralController : MonoBehaviour
+public class RBAnimAndRigController : MonoBehaviour
 {
     [Header("Refs")]
     [SerializeField] private Animator animator;
-    [SerializeField] private CCBodyMovement bodyMovement;
-    [SerializeField] private CCProceduralAnimation procedural;
+    [SerializeField] private RBBodyMovement bodyMovement;
+    [SerializeField] private RigBuilder rigBuilder;
 
     [Header("Animator Params (must match your Animator)")]
     [SerializeField] private string plantingBool = "Planting";
@@ -21,9 +22,12 @@ public class AnimAndProceduralController : MonoBehaviour
     [Tooltip("Horizontal speed below this counts as not moving.")]
     [SerializeField] private float moveSpeedThreshold = 0.15f;
 
-    [Header("Procedural Enable Rule")]
-    [Tooltip("If true, procedural feet will only run while grounded.")]
-    [SerializeField] private bool proceduralOnlyWhenGrounded = true;
+    [Header("Rig Enable Rule")]
+    [Tooltip("If true, rig will only run while grounded.")]
+    [SerializeField] private bool rigOnlyWhenGrounded = true;
+
+    [Tooltip("If true, rig only runs while moving (same behavior as your old script).")]
+    [SerializeField] private bool rigOnlyWhenMoving = true;
 
     private float _idleTimer = 0f;
     private bool _wasGrounded = true;
@@ -31,19 +35,19 @@ public class AnimAndProceduralController : MonoBehaviour
     private void Reset()
     {
         animator = GetComponentInChildren<Animator>();
-        bodyMovement = GetComponent<CCBodyMovement>();
-        procedural = GetComponentInChildren<CCProceduralAnimation>();
+        bodyMovement = GetComponent<RBBodyMovement>();
+        rigBuilder = GetComponentInChildren<RigBuilder>();
     }
 
     private void Awake()
     {
         if (!animator) animator = GetComponentInChildren<Animator>();
-        if (!bodyMovement) bodyMovement = GetComponent<CCBodyMovement>();
-        if (!procedural) procedural = GetComponentInChildren<CCProceduralAnimation>();
+        if (!bodyMovement) bodyMovement = GetComponent<RBBodyMovement>();
+        if (!rigBuilder) rigBuilder = GetComponentInChildren<RigBuilder>();
 
-        if (!animator) Debug.LogError("AnimAndProceduralController: Missing Animator (child).");
-        if (!bodyMovement) Debug.LogError("AnimAndProceduralController: Missing CCBodyMovement (same GO).");
-        if (!procedural) Debug.LogError("AnimAndProceduralController: Missing CCProceduralAnimation (child).");
+        if (!animator) Debug.LogError("AnimAndRigController_RB: Missing Animator (child).");
+        if (!bodyMovement) Debug.LogError("AnimAndRigController_RB: Missing RBBodyMovement (same GO).");
+        if (!rigBuilder) Debug.LogWarning("AnimAndRigController_RB: Missing RigBuilder (child).");
     }
 
     private void Start()
@@ -56,30 +60,30 @@ public class AnimAndProceduralController : MonoBehaviour
     {
         if (!animator || !bodyMovement) return;
 
-        // --- READ movement state ---
+        // RBBodyMovement updates in FixedUpdate, so in LateUpdate we're reading the latest cached state.
         bool grounded = bodyMovement.IsGrounded;
+
         Vector3 v = bodyMovement.CurrentVelocity;
         float horizontalSpeed = new Vector3(v.x, 0f, v.z).magnitude;
         bool moving = horizontalSpeed > moveSpeedThreshold;
 
-        // --- WRITE Animator values only ---
+        // --- Animator values ---
         SetBoolSafe(midAirBool, !grounded);
 
-        // Jump trigger on takeoff (grounded -> not grounded)
+        // Jumped trigger when grounded -> not grounded (also fires when walking off ledges)
         if (_wasGrounded && !grounded)
         {
             SetTriggerSafe(jumpedTrigger);
         }
         else if (!_wasGrounded && grounded)
         {
-            // optional cleanup (doesn't hurt)
             ResetTriggerSafe(jumpedTrigger);
         }
         _wasGrounded = grounded;
 
         bool planting = GetBoolSafe(plantingBool);
 
-        // Idle only when grounded, not moving, and not planting
+        // Idle only when grounded, not moving, not planting
         if (!grounded || moving || planting)
         {
             _idleTimer = 0f;
@@ -95,43 +99,53 @@ public class AnimAndProceduralController : MonoBehaviour
         bool idle = GetBoolSafe(idleBool);
         bool midAir = !grounded;
 
-        // --- Procedural on/off (optional but allowed as you said) ---
-        if (procedural)
+        // --- Rig on/off ---
+        if (rigBuilder)
         {
-            bool allowProcedural =
-                moving &&
-                !planting &&
-                !idle &&
-                (!proceduralOnlyWhenGrounded || grounded) &&
-                !midAir;
+            bool allowRig = !planting && !idle && !midAir;
 
-            if (procedural.enabled != allowProcedural)
-                procedural.enabled = allowProcedural;
+            if (rigOnlyWhenGrounded)
+                allowRig &= grounded;
+
+            if (rigOnlyWhenMoving)
+                allowRig &= moving;
+
+            SetRigEnabled(allowRig);
         }
     }
 
-    // 3D button calls this
+    // Button calls this
     public void StartPlanting()
     {
-        // procedural OFF immediately
-        if (procedural) procedural.enabled = false;
+        // Rig OFF immediately
+        SetRigEnabled(false);
 
-        // animator values
+        // Animator values
         SetBoolSafe(plantingBool, true);
         SetBoolSafe(idleBool, false);
         _idleTimer = 0f;
     }
 
-    // Call this from an Animation Event at the end of Digging (recommended),
-    // OR call it from your button when you want to stop.
+    // Call from Animation Event at end of planting/digging, or from button
     public void EndPlanting()
     {
         SetBoolSafe(plantingBool, false);
         _idleTimer = 0f;
-        // procedural will re-enable automatically next LateUpdate if moving + grounded etc.
+        // Rig will re-enable automatically based on rules next LateUpdate
     }
 
-    // --- Safe Animator helpers (no other side effects) ---
+    private void SetRigEnabled(bool enabled)
+    {
+        if (!rigBuilder) return;
+        if (rigBuilder.enabled == enabled) return;
+
+        rigBuilder.enabled = enabled;
+
+        // When re-enabling, rebuild so constraints update immediately.
+        if (enabled) rigBuilder.Build();
+    }
+
+    // --- Safe Animator helpers ---
     private bool HasParam(string name, AnimatorControllerParameterType type)
     {
         if (string.IsNullOrEmpty(name) || !animator) return false;

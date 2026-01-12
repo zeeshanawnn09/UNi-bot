@@ -2883,13 +2883,14 @@ GameObject:
   - component: {fileID: 8814313645839073174}
   - component: {fileID: 2242059418205351123}
   - component: {fileID: 2023154111378641642}
+  - component: {fileID: 3092054202572557217}
   m_Layer: 7
   m_Name: CC Player
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &6533764199815834100
 Transform:
   m_ObjectHideFlags: 0
@@ -2980,7 +2981,7 @@ MonoBehaviour:
   rotationSpeed: 10
   acceleration: 12
   deceleration: 16
-  jumpHeight: 1.2
+  jumpHeight: 1.5
   gravity: -9.81
   cameraTransform: {fileID: 0}
 --- !u!114 &9010755688255396096
@@ -3056,6 +3057,28 @@ MonoBehaviour:
   hitLayers:
     serializedVersion: 2
     m_Bits: 72
+--- !u!114 &3092054202572557217
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3325996385922743278}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9bd1e94cf35fd844fbf98a521362a8e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 1391512492172020920}
+  bodyMovement: {fileID: 3882236573164415990}
+  rigBuilder: {fileID: 8678765329749489466}
+  plantingBool: Planting
+  midAirBool: MidAir
+  idleBool: Idle
+  jumpedTrigger: Jumped
+  idleDelaySeconds: 10
+  moveSpeedThreshold: 0.15
+  rigOnlyWhenGrounded: 1
 --- !u!1 &3371827015215017307
 GameObject:
   m_ObjectHideFlags: 0
