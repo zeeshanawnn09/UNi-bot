@@ -11,6 +11,7 @@ public class RBAnimAndRigController : MonoBehaviour
 
     [Header("Animator Params (must match your Animator)")]
     [SerializeField] private string plantingTrigger = "Planting"; // Trigger
+    [SerializeField] private string diggingTrigger = "Digging";  // Trigger
     [SerializeField] private string midAirBool = "MidAir";
     [SerializeField] private string idleBool = "Idle";
     [SerializeField] private string jumpedTrigger = "Jumped";
@@ -26,15 +27,15 @@ public class RBAnimAndRigController : MonoBehaviour
     [Tooltip("If true, rig will only run while grounded (midAir disables rig).")]
     [SerializeField] private bool rigOnlyWhenGrounded = true;
 
-    [Header("Planting (Timer Lock)")]
-    [Tooltip("How long planting lasts. While active: movement OFF, rig OFF, button spam ignored.")]
+    [Header("Action Durations (Different Timers)")]
     [SerializeField] private float plantingDurationSeconds = 1.2f;
+    [SerializeField] private float diggingDurationSeconds = 1.6f;
 
     private float _idleTimer = 0f;
     private bool _wasGrounded = true;
 
-    private bool _isPlanting = false;
-    private float _plantingTimer = 0f;
+    private bool _isAction = false;
+    private float _actionTimer = 0f;
 
     private void Reset()
     {
@@ -60,8 +61,8 @@ public class RBAnimAndRigController : MonoBehaviour
         _idleTimer = 0f;
         SetBoolSafe(idleBool, false);
 
-        _isPlanting = false;
-        _plantingTimer = 0f;
+        _isAction = false;
+        _actionTimer = 0f;
     }
 
     private void LateUpdate()
@@ -70,14 +71,14 @@ public class RBAnimAndRigController : MonoBehaviour
 
         bool grounded = bodyMovement.IsGrounded;
 
-        // --- Planting timer ---
-        if (_isPlanting)
+        // --- Action timer ---
+        if (_isAction)
         {
-            _plantingTimer -= Time.deltaTime;
-            if (_plantingTimer <= 0f)
+            _actionTimer -= Time.deltaTime;
+            if (_actionTimer <= 0f)
             {
-                _isPlanting = false;
-                _plantingTimer = 0f;
+                _isAction = false;
+                _actionTimer = 0f;
 
                 if (bodyMovement) bodyMovement.enabled = true;
             }
@@ -93,25 +94,15 @@ public class RBAnimAndRigController : MonoBehaviour
 
         _wasGrounded = grounded;
 
-        // --- Movement read (if movement script disabled, velocity may be stale; planting overrides anyway) ---
+        // --- Movement read ---
         Vector3 v = bodyMovement.CurrentVelocity;
         float horizontalSpeed = new Vector3(v.x, 0f, v.z).magnitude;
         bool moving = horizontalSpeed > moveSpeedThreshold;
 
-        // --- Idle state machine (your 1..5), but never while planting ---
+        // --- Idle state machine (never while action) ---
         bool idle = GetBoolSafe(idleBool);
 
-        if (_isPlanting)
-        {
-            _idleTimer = 0f;
-            if (idle) SetBoolSafe(idleBool, false);
-        }
-        else if (!grounded)
-        {
-            _idleTimer = 0f;
-            if (idle) SetBoolSafe(idleBool, false);
-        }
-        else if (moving)
+        if (_isAction || !grounded || moving)
         {
             _idleTimer = 0f;
             if (idle) SetBoolSafe(idleBool, false);
@@ -134,13 +125,9 @@ public class RBAnimAndRigController : MonoBehaviour
         // --- Rig on/off ---
         if (rigBuilder)
         {
-            // Disable rig only when:
-            // - planting (immediate)
-            // - not grounded (midair)
-            // - idle (after timer)
             bool allowRig = true;
 
-            if (_isPlanting) allowRig = false;
+            if (_isAction) allowRig = false;
             if (rigOnlyWhenGrounded && !grounded) allowRig = false;
             if (idle) allowRig = false;
 
@@ -151,26 +138,31 @@ public class RBAnimAndRigController : MonoBehaviour
     // Button calls this (PUBLIC)
     public void StartPlanting()
     {
-        if (_isPlanting) return; // blocks spam
+        StartAction(plantingTrigger, plantingDurationSeconds);
+    }
 
-        // optional: only allow planting while grounded
-        if (bodyMovement && !bodyMovement.IsGrounded) return;
+    // Button calls this (PUBLIC)
+    public void StartDigging()
+    {
+        StartAction(diggingTrigger, diggingDurationSeconds);
+    }
 
-        _isPlanting = true;
-        _plantingTimer = Mathf.Max(0.01f, plantingDurationSeconds);
+    private void StartAction(string triggerName, float durationSeconds)
+    {
+        if (_isAction) return; // blocks spam
+        if (bodyMovement && !bodyMovement.IsGrounded) return; // optional grounded gate
 
-        // stop movement
+        _isAction = true;
+        _actionTimer = Mathf.Max(0.01f, durationSeconds);
+
         if (bodyMovement) bodyMovement.enabled = false;
 
-        // stop idle immediately
         SetBoolSafe(idleBool, false);
         _idleTimer = 0f;
 
-        // rig OFF immediately
         SetRigEnabled(false);
 
-        // fire planting trigger
-        SetTriggerSafe(plantingTrigger);
+        SetTriggerSafe(triggerName);
     }
 
     private void SetRigEnabled(bool enabled)

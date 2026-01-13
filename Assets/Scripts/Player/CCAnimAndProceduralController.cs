@@ -11,6 +11,7 @@ public class CCAnimAndProceduralController : MonoBehaviour
 
     [Header("Animator Params (must match your Animator)")]
     [SerializeField] private string plantingTrigger = "Planting"; // Trigger
+    [SerializeField] private string diggingTrigger = "Digging";  // Trigger
     [SerializeField] private string midAirBool = "MidAir";
     [SerializeField] private string idleBool = "Idle";
     [SerializeField] private string jumpedTrigger = "Jumped";
@@ -26,15 +27,15 @@ public class CCAnimAndProceduralController : MonoBehaviour
     [Tooltip("If true, RigBuilder will only run while grounded.")]
     [SerializeField] private bool rigOnlyWhenGrounded = true;
 
-    [Header("Planting (Timer Lock)")]
-    [Tooltip("How long planting lasts. While active: movement OFF, rig OFF, button spam ignored.")]
+    [Header("Action Durations (Different Timers)")]
     [SerializeField] private float plantingDurationSeconds = 1.2f;
+    [SerializeField] private float diggingDurationSeconds = 1.6f;
 
     private float _idleTimer = 0f;
     private bool _wasGrounded = true;
 
-    private bool _isPlanting = false;
-    private float _plantingTimer = 0f;
+    private bool _isAction = false;
+    private float _actionTimer = 0f;
 
     private void Reset()
     {
@@ -59,8 +60,8 @@ public class CCAnimAndProceduralController : MonoBehaviour
         if (bodyMovement) _wasGrounded = bodyMovement.IsGrounded;
 
         _idleTimer = 0f;
-        _isPlanting = false;
-        _plantingTimer = 0f;
+        _isAction = false;
+        _actionTimer = 0f;
 
         SetBoolSafe(idleBool, false);
     }
@@ -71,20 +72,20 @@ public class CCAnimAndProceduralController : MonoBehaviour
 
         bool grounded = bodyMovement.IsGrounded;
 
-        // --- Planting timer ---
-        if (_isPlanting)
+        // --- Action timer ---
+        if (_isAction)
         {
-            _plantingTimer -= Time.deltaTime;
-            if (_plantingTimer <= 0f)
+            _actionTimer -= Time.deltaTime;
+            if (_actionTimer <= 0f)
             {
-                _isPlanting = false;
-                _plantingTimer = 0f;
+                _isAction = false;
+                _actionTimer = 0f;
 
                 if (bodyMovement) bodyMovement.enabled = true;
             }
         }
 
-        // --- READ movement state (may be stale while bodyMovement disabled; planting overrides anyway) ---
+        // --- READ movement state (may be stale while bodyMovement disabled; action overrides anyway) ---
         Vector3 v = bodyMovement.CurrentVelocity;
         float horizontalSpeed = new Vector3(v.x, 0f, v.z).magnitude;
         bool moving = horizontalSpeed > moveSpeedThreshold;
@@ -99,15 +100,10 @@ public class CCAnimAndProceduralController : MonoBehaviour
 
         _wasGrounded = grounded;
 
-        // --- Idle (your 1..5 loop), but never while planting ---
+        // --- Idle (never while action) ---
         bool idle = GetBoolSafe(idleBool);
 
-        if (_isPlanting)
-        {
-            _idleTimer = 0f;
-            if (idle) SetBoolSafe(idleBool, false);
-        }
-        else if (!grounded || moving)
+        if (_isAction || !grounded || moving)
         {
             _idleTimer = 0f;
             if (idle) SetBoolSafe(idleBool, false);
@@ -131,16 +127,10 @@ public class CCAnimAndProceduralController : MonoBehaviour
         // --- RigBuilder on/off ---
         if (rigBuilder)
         {
-            // Disable rig only when:
-            // - planting
-            // - midAir (if rigOnlyWhenGrounded)
-            // - idle (after timer)
             bool allowRig = true;
 
-            if (_isPlanting) allowRig = false;
-
+            if (_isAction) allowRig = false;
             if (rigOnlyWhenGrounded && !grounded) allowRig = false;
-
             if (idle) allowRig = false;
 
             SetRigEnabled(allowRig);
@@ -150,13 +140,25 @@ public class CCAnimAndProceduralController : MonoBehaviour
     // Button calls this (PUBLIC)
     public void StartPlanting()
     {
-        if (_isPlanting) return; // blocks spam / restart
+        StartAction(plantingTrigger, plantingDurationSeconds);
+    }
 
-        // optional: only allow planting while grounded
+    // Button calls this (PUBLIC)
+    public void StartDigging()
+    {
+        StartAction(diggingTrigger, diggingDurationSeconds);
+    }
+
+    // Shared logic so Planting and Digging are identical (except duration)
+    private void StartAction(string triggerName, float durationSeconds)
+    {
+        if (_isAction) return; // blocks spam / restart
+
+        // optional: only allow while grounded
         if (bodyMovement && !bodyMovement.IsGrounded) return;
 
-        _isPlanting = true;
-        _plantingTimer = Mathf.Max(0.01f, plantingDurationSeconds);
+        _isAction = true;
+        _actionTimer = Mathf.Max(0.01f, durationSeconds);
 
         // stop movement
         if (bodyMovement) bodyMovement.enabled = false;
@@ -168,8 +170,8 @@ public class CCAnimAndProceduralController : MonoBehaviour
         // rig OFF immediately
         SetRigEnabled(false);
 
-        // fire planting trigger
-        SetTriggerSafe(plantingTrigger);
+        // fire trigger
+        SetTriggerSafe(triggerName);
     }
 
     private void SetRigEnabled(bool enabled)
