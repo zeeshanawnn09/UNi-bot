@@ -35,10 +35,10 @@ public class DoorBehavior : MonoBehaviour
         {
             if (pipe == null) return false;
             float z = NormalizeAngle(pipe.transform.localEulerAngles.z);
-            
+
             // Check if pipe is at 0/360/-360 degrees (all normalize to 0)
             bool atZero = Mathf.Abs(z) <= angleTolerance || Mathf.Abs(z - 360f) <= angleTolerance;
-            
+
             if (!atZero)
             {
                 return false;
