@@ -5,12 +5,13 @@ public class SceneLoader : MonoBehaviour
 {
     public static SceneLoader Instance { get; private set; }
 
-    [Header("Scene Names")]
-    [SerializeField] private string OpenWorldSceneName;
-    [SerializeField] private string LobbySceneName;
-    [SerializeField] private string Puzzle1SceneName;
-    [SerializeField] private string Puzzle2SceneName;
-    [SerializeField] private string RoofTopSceneName;
+    [Header("Scene Build Indices (File > Build Settings order)")]
+    [SerializeField] private int MainMenuSceneIndex = 0;
+    [SerializeField] private int OpenWorldSceneIndex = 1;
+    [SerializeField] private int LobbySceneIndex = 2;
+    [SerializeField] private int Puzzle1SceneIndex = 3;
+    [SerializeField] private int Puzzle2SceneIndex = 4;
+    [SerializeField] private int RoofTopSceneIndex = 5;
 
     private void Awake()
     {
@@ -24,13 +25,14 @@ public class SceneLoader : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    public static void LoadOpenWorld() => LoadByName(Instance.OpenWorldSceneName);
-    public static void LoadLobby() => LoadByName(Instance.LobbySceneName);
-    public static void LoadPuzzle1() => LoadByName(Instance.Puzzle1SceneName);
-    public static void LoadPuzzle2() => LoadByName(Instance.Puzzle2SceneName);
-    public static void LoadRoofTop() => LoadByName(Instance.RoofTopSceneName);
+    public static void LoadMainMenu() => LoadByIndex(Instance.MainMenuSceneIndex);
+    public static void LoadOpenWorld() => LoadByIndex(Instance.OpenWorldSceneIndex);
+    public static void LoadLobby() => LoadByIndex(Instance.LobbySceneIndex);
+    public static void LoadPuzzle1() => LoadByIndex(Instance.Puzzle1SceneIndex);
+    public static void LoadPuzzle2() => LoadByIndex(Instance.Puzzle2SceneIndex);
+    public static void LoadRoofTop() => LoadByIndex(Instance.RoofTopSceneIndex);
 
-    private static void LoadByName(string sceneName)
+    private static void LoadByIndex(int buildIndex)
     {
         if (Instance == null)
         {
@@ -38,12 +40,13 @@ public class SceneLoader : MonoBehaviour
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(sceneName))
+        int sceneCount = SceneManager.sceneCountInBuildSettings;
+        if (buildIndex < 0 || buildIndex >= sceneCount)
         {
-            Debug.LogError("Scene name is empty on SceneLoader.");
+            Debug.LogError($"Invalid buildIndex {buildIndex}. Valid range: 0 to {sceneCount - 1}. Check Build Settings order.");
             return;
         }
 
-        SceneManager.LoadScene(sceneName);
+        SceneManager.LoadScene(buildIndex);
     }
 }
