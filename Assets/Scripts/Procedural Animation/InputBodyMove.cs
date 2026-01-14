@@ -25,6 +25,7 @@ public class InputBodyMove : MonoBehaviour
         JumpInput(value.isPressed);
     }
 
+    // HOLD behavior: true while pressed, false when released
     public void OnSprint(InputValue value)
     {
         SprintInput(value.isPressed);
@@ -43,6 +44,14 @@ public class InputBodyMove : MonoBehaviour
     public void SprintInput(bool newSprintState)
     {
         sprint = newSprintState;
+    }
+
+    private void OnDisable()
+    {
+        // Safety: if object disables while key is held, avoid "stuck sprint"
+        sprint = false;
+        jump = false;
+        move = Vector2.zero;
     }
 
     private void OnApplicationFocus(bool hasFocus)

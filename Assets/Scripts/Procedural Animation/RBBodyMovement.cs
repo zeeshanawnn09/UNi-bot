@@ -34,8 +34,23 @@ public class RBBodyMovement : MonoBehaviour
     [Header("References")]
     public Transform cameraTransform;
 
+    [Header("Procedural Animation Values (Walk)")]
+    public float walkVelocityMultiplier = 0.4f;
+    public float walkCycleSpeed = 1f;
+    public float walkVelocityClamp = 4f;
+
+    [Header("Procedural Animation Values (Sprint)")]
+    public float sprintVelocityMultiplier = 0.65f;
+    public float sprintCycleSpeed = 1.5f;
+    public float sprintVelocityClamp = 6f;
+
     public bool IsGrounded { get; private set; }
     public Vector3 CurrentVelocity { get; private set; }
+
+    // Values RBProceduralAnimation reads (live)
+    public float ProcVelocityMultiplier => (_input != null && _input.sprint) ? sprintVelocityMultiplier : walkVelocityMultiplier;
+    public float ProcCycleSpeed => (_input != null && _input.sprint) ? sprintCycleSpeed : walkCycleSpeed;
+    public float ProcVelocityClamp => (_input != null && _input.sprint) ? sprintVelocityClamp : walkVelocityClamp;
 
     Rigidbody _rb;
     CapsuleCollider _cap;
@@ -115,14 +130,11 @@ public class RBBodyMovement : MonoBehaviour
         float accel = IsGrounded ? acceleration : airAcceleration;
         float decel = IsGrounded ? groundDeceleration : airDeceleration;
 
-        // === KEY PART FOR SLIDING ===
         // If no input and sliding is allowed, do NOT apply "braking" force.
         if (!hasInput && allowSlidingWhenNoInput)
         {
-            // Optionally apply a tiny decel if you want some slow-down even on ground
             if (decel > 0f)
             {
-                // decelerate toward zero without instantly snapping
                 Vector3 decelDelta = -planar;
                 Vector3 decelAccel = Vector3.ClampMagnitude(
                     decelDelta / Mathf.Max(Time.fixedDeltaTime, 0.00001f),
@@ -137,7 +149,6 @@ public class RBBodyMovement : MonoBehaviour
         // With input (or if sliding disabled): accelerate toward desired velocity
         Vector3 delta = desiredPlanarVel - planar;
 
-        // If no input and sliding disabled: use decel as "brake strength"
         float maxAccelThisFrame = hasInput ? accel : decel;
         if (maxAccelThisFrame < 0f) maxAccelThisFrame = 0f;
 

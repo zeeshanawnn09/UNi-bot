@@ -25,6 +25,10 @@ public class RBProceduralAnimation : MonoBehaviour
     [Header("Body Source")]
     [SerializeField] private Rigidbody bodyRigidbody;
 
+    [Header("Procedural Overrides (Read From RBBodyMovement)")]
+    [SerializeField] private bool readValuesFromBodyMovement = true;
+    [SerializeField] private RBBodyMovement bodyMovement;
+
     [Header("Ground / Raycasts")]
     [SerializeField] private LayerMask layerMask;
     [SerializeField] private float legRayoffset = 0.29f;
@@ -94,16 +98,23 @@ public class RBProceduralAnimation : MonoBehaviour
     private Coroutine timingsCoroutine;
     private bool wasOnSlide = false;
 
+    // Runtime (can be overridden by RBBodyMovement)
+    private float runtimeVelocityMultiplier;
+    private float runtimeCycleSpeed;
+    private float runtimeVelocityClamp;
+
     private Transform BodyT => bodyRigidbody ? bodyRigidbody.transform : transform;
 
     private void Reset()
     {
         if (bodyRigidbody == null) bodyRigidbody = GetComponentInParent<Rigidbody>();
+        if (bodyMovement == null) bodyMovement = GetComponentInParent<RBBodyMovement>();
     }
 
     private void Awake()
     {
         if (bodyRigidbody == null) bodyRigidbody = GetComponentInParent<Rigidbody>();
+        if (bodyMovement == null) bodyMovement = GetComponentInParent<RBBodyMovement>();
     }
 
     private void Start()
@@ -149,6 +160,11 @@ public class RBProceduralAnimation : MonoBehaviour
         wasGrounded = IsBodyGroundedRuntime(out _);
         initialized = true;
 
+        // init runtime values from inspector defaults
+        runtimeVelocityMultiplier = velocityMultiplier;
+        runtimeCycleSpeed = cycleSpeed;
+        runtimeVelocityClamp = velocityClamp;
+
         if (resyncOnEnableAndLand)
             ResyncLegsImmediate();
 
@@ -185,6 +201,20 @@ public class RBProceduralAnimation : MonoBehaviour
     {
         if (!initialized || nbLegs == 0) return;
 
+        // Live override from RBBodyMovement (walk/sprint)
+        if (readValuesFromBodyMovement && bodyMovement != null)
+        {
+            runtimeVelocityMultiplier = bodyMovement.ProcVelocityMultiplier;
+            runtimeCycleSpeed = bodyMovement.ProcCycleSpeed;
+            runtimeVelocityClamp = bodyMovement.ProcVelocityClamp;
+        }
+        else
+        {
+            runtimeVelocityMultiplier = velocityMultiplier;
+            runtimeCycleSpeed = cycleSpeed;
+            runtimeVelocityClamp = velocityClamp;
+        }
+
         bool grounded = IsBodyGroundedRuntime(out RaycastHit groundHit);
         bool onSlide = IsSlideSurface(groundHit);
 
@@ -196,7 +226,6 @@ public class RBProceduralAnimation : MonoBehaviour
             if (cancelStepsOnSlide)
             {
                 StopAllStepCoroutines();
-                // Also reset timings so we don't instantly trigger a big step later
                 for (int i = 0; i < nbLegs; i++)
                     footTimings[i] = setTimingsManually ? manualTimings[i] : i * timingsOffset;
             }
@@ -204,7 +233,6 @@ public class RBProceduralAnimation : MonoBehaviour
         else if (!onSlide && wasOnSlide)
         {
             wasOnSlide = false;
-            // Leaving slide: make sure there's no "catch-up" and legs are synced to anchors
             ResyncLegsImmediate();
         }
 
@@ -236,20 +264,18 @@ public class RBProceduralAnimation : MonoBehaviour
         velocity = Vector3.MoveTowards(lastVelocity, rawVel, Time.deltaTime * velocitySmoothing);
         lastVelocity = velocity;
 
-        clampDivider = 1f / Remap(velocity.magnitude, 0f, velocityClamp, 1f, 2f);
+        clampDivider = 1f / Remap(velocity.magnitude, 0f, runtimeVelocityClamp, 1f, 2f);
 
         Transform bt = BodyT;
 
-        // ✅ Always plant feet to ground
-        // IMPORTANT: on Slide we plant UNDER BODY ANCHORS (so they follow the sliding body),
-        // not from lastLegPositions (which would be left behind).
+        // Always plant feet to ground
         for (int i = 0; i < nbLegs; i++)
         {
             if (isLegMoving[i]) continue;
 
             Vector3 plantSourceWorld = onSlide
-                ? bt.TransformPoint(defaultLegPositionsLocalToBody[i])   // follow body anchor while sliding
-                : lastLegPositions[i];                                   // normal: keep planted where last step ended
+                ? bt.TransformPoint(defaultLegPositionsLocalToBody[i])
+                : lastLegPositions[i];
 
             (Vector3 p, bool didHit) = FitToTheGroundHit(
                 plantSourceWorld,
@@ -261,7 +287,6 @@ public class RBProceduralAnimation : MonoBehaviour
 
             legIktargets[i].position = p;
 
-            // ✅ Critical: update lastLegPositions while on Slide so nothing "snaps back" later
             if (onSlide)
             {
                 lastLegPositions[i] = p;
@@ -271,7 +296,7 @@ public class RBProceduralAnimation : MonoBehaviour
             }
         }
 
-        // ✅ Slide tag: disable stepping completely, keep planting only
+        // Slide tag: disable stepping completely, keep planting only
         if (onSlide)
         {
             lastBodyPos = bt.position;
@@ -279,11 +304,11 @@ public class RBProceduralAnimation : MonoBehaviour
         }
 
         // Normal stepping logic
-        float cycleSpeedMultiplier = Remap(velocity.magnitude, 0f, velocityClamp, 1f, 2f);
+        float cycleSpeedMultiplier = Remap(velocity.magnitude, 0f, runtimeVelocityClamp, 1f, 2f);
 
         for (int i = 0; i < nbLegs; i++)
         {
-            footTimings[i] += Time.deltaTime * cycleSpeed * cycleSpeedMultiplier;
+            footTimings[i] += Time.deltaTime * runtimeCycleSpeed * cycleSpeedMultiplier;
 
             if (footTimings[i] >= cycleLimit && !isLegMoving[i])
             {
@@ -312,9 +337,9 @@ public class RBProceduralAnimation : MonoBehaviour
         Vector3 planarVel = Vector3.ProjectOnPlane(velocity, Vector3.up);
         Vector3 dir = planarVel.sqrMagnitude > 0.0001f ? planarVel.normalized : Vector3.zero;
 
-        float mag = Mathf.Clamp(planarVel.magnitude, 0f, velocityClamp * clampDivider);
+        float mag = Mathf.Clamp(planarVel.magnitude, 0f, runtimeVelocityClamp * clampDivider);
 
-        Vector3 predicted = anchorWorld + dir * mag * velocityMultiplier;
+        Vector3 predicted = anchorWorld + dir * mag * runtimeVelocityMultiplier;
 
         (Vector3 hitPoint, bool didHit) = FitToTheGroundHit(predicted, layerMask, legRayoffset, legRayLength, sphereCastRadius);
         if (!didHit) return;
