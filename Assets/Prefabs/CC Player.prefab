@@ -300,6 +300,8 @@ MonoBehaviour:
   onlyStepWhenGrounded: 1
   bodyGroundCheckOffset: -0.06
   bodyGroundCheckDistance: 0.44
+  readValuesFromBodyMovement: 1
+  bodyMovement: {fileID: 0}
 --- !u!1 &217252156836363314
 GameObject:
   m_ObjectHideFlags: 0
@@ -2878,9 +2880,9 @@ GameObject:
   - component: {fileID: 6533764199815834100}
   - component: {fileID: 5506685248731891814}
   - component: {fileID: 4700608019120917745}
-  - component: {fileID: 3882236573164415990}
   - component: {fileID: 9010755688255396096}
   - component: {fileID: 3092054202572557217}
+  - component: {fileID: 3882236573164415990}
   m_Layer: 7
   m_Name: CC Player
   m_TagString: Untagged
@@ -2962,26 +2964,6 @@ CharacterController:
   m_SkinWidth: 0.0001
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0.05, z: 0}
---- !u!114 &3882236573164415990
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3325996385922743278}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3849d0f464f7b684cabc388dea117edf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  walkSpeed: 3
-  sprintSpeed: 5
-  rotationSpeed: 10
-  acceleration: 12
-  deceleration: 16
-  jumpHeight: 1.5
-  gravity: -9.81
-  cameraTransform: {fileID: 0}
 --- !u!114 &9010755688255396096
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3016,13 +2998,41 @@ MonoBehaviour:
   bodyMovement: {fileID: 3882236573164415990}
   rigBuilder: {fileID: 8678765329749489466}
   plantingTrigger: Planting
+  diggingTrigger: Digging
   midAirBool: MidAir
   idleBool: Idle
   jumpedTrigger: Jumped
   idleDelaySeconds: 10
   moveSpeedThreshold: 0.15
   rigOnlyWhenGrounded: 1
-  plantingRigDisableSeconds: 1
+  plantingDurationSeconds: 1.2
+  diggingDurationSeconds: 1.6
+--- !u!114 &3882236573164415990
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3325996385922743278}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3849d0f464f7b684cabc388dea117edf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  walkSpeed: 3
+  sprintSpeed: 5
+  rotationSpeed: 10
+  acceleration: 12
+  deceleration: 16
+  jumpHeight: 1.5
+  gravity: -9.81
+  cameraTransform: {fileID: 8445952653821402417, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
+  walkVelocityMultiplier: 1
+  walkCycleSpeed: 3
+  walkVelocityClamp: 2.2
+  sprintVelocityMultiplier: 1.3
+  sprintCycleSpeed: 3.5
+  sprintVelocityClamp: 2.4
 --- !u!1 &3371827015215017307
 GameObject:
   m_ObjectHideFlags: 0

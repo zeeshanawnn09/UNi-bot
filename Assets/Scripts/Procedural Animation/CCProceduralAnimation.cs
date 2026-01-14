@@ -70,6 +70,10 @@ public class CCProceduralAnimation : MonoBehaviour
     [SerializeField] private float bodyGroundCheckOffset = 0.2f;
     [SerializeField] private float bodyGroundCheckDistance = 1.2f;
 
+    [Header("Procedural Overrides (Read From CCBodyMovement)")]
+    [SerializeField] private bool readValuesFromBodyMovement = true;
+    [SerializeField] private CCBodyMovement bodyMovement;
+
     public EventHandler<Vector3> OnStepFinished;
 
     private Vector3[] lastLegPositions;
@@ -94,6 +98,21 @@ public class CCProceduralAnimation : MonoBehaviour
     private Coroutine[] stepCoroutines;
 
     private bool wasGrounded = true;
+
+    // Runtime (can be overridden by CCBodyMovement)
+    private float runtimeVelocityMultiplier;
+    private float runtimeCycleSpeed;
+    private float runtimeVelocityClamp;
+
+    private void Reset()
+    {
+        if (bodyMovement == null) bodyMovement = GetComponentInParent<CCBodyMovement>();
+    }
+
+    private void Awake()
+    {
+        if (bodyMovement == null) bodyMovement = GetComponentInParent<CCBodyMovement>();
+    }
 
     private void OnEnable()
     {
@@ -179,12 +198,31 @@ public class CCProceduralAnimation : MonoBehaviour
 
         wasGrounded = IsBodyGrounded();
 
+        // init runtime values from inspector defaults
+        runtimeVelocityMultiplier = velocityMultiplier;
+        runtimeCycleSpeed = cycleSpeed;
+        runtimeVelocityClamp = velocityClamp;
+
         // make sure timings are in sync
         StartCoroutine(UpdateTimings(refreshTimingRate));
     }
 
     private void Update()
     {
+        // Live override from CCBodyMovement (walk/sprint)
+        if (readValuesFromBodyMovement && bodyMovement != null)
+        {
+            runtimeVelocityMultiplier = bodyMovement.ProcVelocityMultiplier;
+            runtimeCycleSpeed = bodyMovement.ProcCycleSpeed;
+            runtimeVelocityClamp = bodyMovement.ProcVelocityClamp;
+        }
+        else
+        {
+            runtimeVelocityMultiplier = velocityMultiplier;
+            runtimeCycleSpeed = cycleSpeed;
+            runtimeVelocityClamp = velocityClamp;
+        }
+
         bool grounded = IsBodyGrounded();
 
         // Land transition: resync to prevent long travel-back steps after a jump/disable period.
@@ -212,7 +250,7 @@ public class CCProceduralAnimation : MonoBehaviour
 
         velocity = (transform.position - lastBodyPos) / Time.deltaTime;
         velocity = Vector3.MoveTowards(lastVelocity, velocity, Time.deltaTime * 45f);
-        clampDevider = 1 / Remap(velocity.magnitude, 0, velocityClamp, 1, 2);
+        clampDevider = 1 / Remap(velocity.magnitude, 0, runtimeVelocityClamp, 1, 2);
 
         lastVelocity = velocity;
 
@@ -232,11 +270,11 @@ public class CCProceduralAnimation : MonoBehaviour
         }
 
         // move legs more frequently when speed is close to max speed
-        float cycleSpeedMultiplyer = Remap(velocity.magnitude, 0f, velocityClamp, 1f, 2f);
+        float cycleSpeedMultiplyer = Remap(velocity.magnitude, 0f, runtimeVelocityClamp, 1f, 2f);
 
         for (int i = 0; i < nbLegs; ++i)
         {
-            footTimings[i] += Time.deltaTime * cycleSpeed * cycleSpeedMultiplyer;
+            footTimings[i] += Time.deltaTime * runtimeCycleSpeed * cycleSpeedMultiplyer;
 
             if (footTimings[i] >= cycleLimit && !isLegMoving[i])
             {
@@ -255,8 +293,8 @@ public class CCProceduralAnimation : MonoBehaviour
         // finding target step point based on body velocity 
         Vector3 v = transform.TransformPoint(defaultLegPositions[index]) +
                     velocity.normalized *
-                    Mathf.Clamp(velocity.magnitude, 0, velocityClamp * clampDevider) *
-                    velocityMultiplier;
+                    Mathf.Clamp(velocity.magnitude, 0, runtimeVelocityClamp * clampDevider) *
+                    runtimeVelocityMultiplier;
 
         targetStepPosition[index] = FitToTheGround(v, layerMask, legRayoffset, legRayLength, sphereCastRadius);
 
@@ -421,10 +459,13 @@ public class CCProceduralAnimation : MonoBehaviour
             Vector3 vel = Application.isPlaying ? velocity : Vector3.zero;
             float clampDiv = Application.isPlaying ? clampDevider : 1f;
 
+            float vc = Application.isPlaying ? runtimeVelocityClamp : velocityClamp;
+            float vm = Application.isPlaying ? runtimeVelocityMultiplier : velocityMultiplier;
+
             Vector3 v = transform.TransformPoint(defaultLocal) +
                         (vel.sqrMagnitude > 0.0001f ? vel.normalized : Vector3.zero) *
-                        Mathf.Clamp(vel.magnitude, 0, velocityClamp * clampDiv) *
-                        velocityMultiplier;
+                        Mathf.Clamp(vel.magnitude, 0, vc * clampDiv) *
+                        vm;
 
             Vector3 v2 = FitToTheGround(v, layerMask, legRayoffset, legRayLength, sphereCastRadius);
 
@@ -451,8 +492,6 @@ public class CCProceduralAnimation : MonoBehaviour
             Gizmos.DrawSphere(legIktargets[i].position, 0.03f);
         }
     }
-
-
 
     public static Vector3 FitToTheGround(
         Vector3 origin,

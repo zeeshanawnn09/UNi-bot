@@ -16,14 +16,29 @@ public class CCBodyMovement : MonoBehaviour
     [Header("References")]
     public Transform cameraTransform;
 
+    [Header("Procedural Animation Values (Walk)")]
+    public float walkVelocityMultiplier = 0.4f;
+    public float walkCycleSpeed = 1f;
+    public float walkVelocityClamp = 4f;
+
+    [Header("Procedural Animation Values (Sprint)")]
+    public float sprintVelocityMultiplier = 0.65f;
+    public float sprintCycleSpeed = 1.5f;
+    public float sprintVelocityClamp = 6f;
+
+    public Vector3 CurrentVelocity { get; private set; }
+    public bool IsGrounded => _controller != null && _controller.isGrounded;
+
+    // Values CCProceduralAnimation reads (live)
+    public float ProcVelocityMultiplier => (_input != null && _input.sprint) ? sprintVelocityMultiplier : walkVelocityMultiplier;
+    public float ProcCycleSpeed => (_input != null && _input.sprint) ? sprintCycleSpeed : walkCycleSpeed;
+    public float ProcVelocityClamp => (_input != null && _input.sprint) ? sprintVelocityClamp : walkVelocityClamp;
+
     private CharacterController _controller;
     private InputBodyMove _input;
 
     private float _currentSpeed;
     private float _verticalVelocity;
-
-    public Vector3 CurrentVelocity { get; private set; }
-    public bool IsGrounded => _controller != null && _controller.isGrounded;
 
     private void Awake()
     {

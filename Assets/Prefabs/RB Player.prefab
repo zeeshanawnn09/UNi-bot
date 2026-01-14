@@ -2025,9 +2025,9 @@ GameObject:
   - component: {fileID: 3397242976389543467}
   - component: {fileID: 4558583270039459814}
   - component: {fileID: 7885611785635980107}
+  - component: {fileID: 6806512972003408742}
   - component: {fileID: 156351678871559170}
   - component: {fileID: 1208487034326629606}
-  - component: {fileID: 6806512972003408742}
   m_Layer: 7
   m_Name: RB Player
   m_TagString: Untagged
@@ -2138,6 +2138,31 @@ CapsuleCollider:
   m_Height: 1
   m_Direction: 1
   m_Center: {x: 0, y: 0.15, z: 0}
+--- !u!114 &6806512972003408742
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2876275956910453568}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1e880976befcd8c4bb62b77a88bf27fc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 6392615479120792360}
+  bodyMovement: {fileID: 1208487034326629606}
+  rigBuilder: {fileID: 3570668553016095835}
+  plantingTrigger: Planting
+  diggingTrigger: Digging
+  midAirBool: MidAir
+  idleBool: Idle
+  jumpedTrigger: Jumped
+  idleDelaySeconds: 10
+  moveSpeedThreshold: 0.15
+  rigOnlyWhenGrounded: 1
+  plantingDurationSeconds: 5.1
+  diggingDurationSeconds: 1.6
 --- !u!114 &156351678871559170
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2184,31 +2209,12 @@ MonoBehaviour:
   groundCheckSkin: 0.18
   coyoteTime: 0.19
   cameraTransform: {fileID: 0}
---- !u!114 &6806512972003408742
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2876275956910453568}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1e880976befcd8c4bb62b77a88bf27fc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  animator: {fileID: 6392615479120792360}
-  bodyMovement: {fileID: 1208487034326629606}
-  rigBuilder: {fileID: 3570668553016095835}
-  plantingTrigger: Planting
-  diggingTrigger: Digging
-  midAirBool: MidAir
-  idleBool: Idle
-  jumpedTrigger: Jumped
-  idleDelaySeconds: 10
-  moveSpeedThreshold: 0.15
-  rigOnlyWhenGrounded: 1
-  plantingDurationSeconds: 5.1
-  diggingDurationSeconds: 1.6
+  walkVelocityMultiplier: 0.8
+  walkCycleSpeed: 1.4
+  walkVelocityClamp: 2
+  sprintVelocityMultiplier: 1.2
+  sprintCycleSpeed: 1.6
+  sprintVelocityClamp: 2
 --- !u!1 &2877798004438184262
 GameObject:
   m_ObjectHideFlags: 0
@@ -2794,8 +2800,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3725309383692795011}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.0000000050687525, y: -0.98836154, z: 0.15212339, w: -0.000000032932213}
-  m_LocalPosition: {x: 0, y: 1.5035291, z: 4.7685843}
+  m_LocalRotation: {x: 0.1521229, y: -0.00000007613487, z: 0.000000011718238, w: 0.9883616}
+  m_LocalPosition: {x: 0, y: 1.5035248, z: -4.768585}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6044,9 +6050,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   stepDistance: 1
-  stepHeight: 1
+  stepHeight: 0.5
   stepSpeed: 5
-  velocityMultiplier: 0.4
+  velocityMultiplier: 0.3
   cycleSpeed: 1
   cycleLimit: 1
   setTimingsManually: 0
@@ -6056,9 +6062,11 @@ MonoBehaviour:
   - 0
   - 0.5
   timingsOffset: 0.25
-  velocityClamp: 4
+  velocityClamp: 2
   velocitySmoothing: 45
   bodyRigidbody: {fileID: 4558583270039459814}
+  readValuesFromBodyMovement: 1
+  bodyMovement: {fileID: 1208487034326629606}
   layerMask:
     serializedVersion: 2
     m_Bits: 64
