@@ -36,6 +36,11 @@ public class RBAnimAndRigController : MonoBehaviour
 
     private bool _isAction = false;
     private float _actionTimer = 0f;
+    private string _currentActionTrigger = "";
+
+    // Events for action lifecycle
+    public System.Action<string, float> OnActionStarting; // (triggerName, duration)
+    public System.Action<string> OnActionCompleted;
 
     private void Reset()
     {
@@ -81,6 +86,9 @@ public class RBAnimAndRigController : MonoBehaviour
                 _actionTimer = 0f;
 
                 if (bodyMovement) bodyMovement.enabled = true;
+
+                // Notify that the action has completed
+                OnActionCompleted?.Invoke(_currentActionTrigger);
             }
         }
 
@@ -152,8 +160,14 @@ public class RBAnimAndRigController : MonoBehaviour
         if (_isAction) return; // blocks spam
         if (bodyMovement && !bodyMovement.IsGrounded) return; // optional grounded gate
 
+        _currentActionTrigger = triggerName;
+        float duration = Mathf.Max(0.01f, durationSeconds);
+
+        // Notify listeners BEFORE action starts
+        OnActionStarting?.Invoke(triggerName, duration);
+
         _isAction = true;
-        _actionTimer = Mathf.Max(0.01f, durationSeconds);
+        _actionTimer = duration;
 
         if (bodyMovement) bodyMovement.enabled = false;
 

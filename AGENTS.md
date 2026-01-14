@@ -2,13 +2,13 @@
 - Project name: Uni-bot
 - Unity version: Unity 6000.0.60f1
 - Active scene:
-  - Name: Checkpoint
+  - Name: Shovit Scene
   - Tags:
-    - Untagged, Respawn, Finish, EditorOnly, MainCamera, Player, GameController, SkyboxCamera
+    - Untagged, Respawn, Finish, EditorOnly, MainCamera, Player, GameController, Slide
   - Layers:
     - Default, TransparentFX, Ignore Raycast, Scannable, Water, UI, Geometry, Player
 - Active game object:
-  - Name: Main Camera
-  - Tag: MainCamera
+  - Name: CameraController
+  - Tag: Untagged
   - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->
