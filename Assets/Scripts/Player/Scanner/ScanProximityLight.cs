@@ -4,15 +4,15 @@ using UnityEngine;
 public class RayconeProximityLight : MonoBehaviour
 {
     [Header("Proximity Settings")]
-    [SerializeField] float detectionRadius = 10f;   // outer radius where flicker happens
-    [SerializeField] float alwaysOnRadius = 2f;     // inner radius where light stays on
+    [SerializeField] float detectionRadius = 10f;
+    [SerializeField] float alwaysOnRadius = 2f;
 
     [Header("Flicker Settings")]
-    [SerializeField] float minFlickerInterval = 0.5f;  // slowest flicker (far)
-    [SerializeField] float maxFlickerInterval = 0.05f; // fastest flicker (near)
+    [SerializeField] float minFlickerInterval = 0.5f;
+    [SerializeField] float maxFlickerInterval = 0.05f;
 
     [Header("Light")]
-    [SerializeField] Light pointLight;              // one point light to toggle
+    [SerializeField] Light pointLight;
 
     [Header("Layers (same idea as RayconeScanner)")]
     [SerializeField] LayerMask hitLayers;
@@ -22,7 +22,6 @@ public class RayconeProximityLight : MonoBehaviour
 
     void Reset()
     {
-        // mirror your RayconeScanner default
         hitLayers = LayerMask.GetMask("Geometry", "Scannable");
 
         if (!pointLight)
@@ -43,7 +42,7 @@ public class RayconeProximityLight : MonoBehaviour
         float nearestDist;
         bool hasScannable = TryGetNearestScannable(out nearestDist);
 
-        // No scannable or too far -> OFF
+        // No scannable or too far OFF
         if (!hasScannable || nearestDist > detectionRadius)
         {
             pointLight.enabled = false;
@@ -51,14 +50,14 @@ public class RayconeProximityLight : MonoBehaviour
             return;
         }
 
-        // Inside "always on" radius -> solid ON
+        // Inside radius solid ON
         if (nearestDist <= alwaysOnRadius)
         {
             pointLight.enabled = true;
             return;
         }
 
-        // Between alwaysOnRadius and detectionRadius -> FLICKER
+        // Between alwaysOnRadius and detectionRadius FLICKER
         float t = Mathf.InverseLerp(detectionRadius, alwaysOnRadius, nearestDist);
         float interval = Mathf.Lerp(minFlickerInterval, maxFlickerInterval, t);
 
@@ -89,7 +88,6 @@ public class RayconeProximityLight : MonoBehaviour
             var col = overlapBuf[i];
             if (!col) continue;
 
-            // same approach as your Raycone: use IScannable
             if (!col.TryGetComponent<IScannable>(out var s))
                 continue;
 

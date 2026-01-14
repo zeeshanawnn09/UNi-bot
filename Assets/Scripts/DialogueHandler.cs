@@ -6,7 +6,7 @@ public class DialogueHandler : MonoBehaviour
 {
     [Header("Dialogue Settings")]
     [SerializeField] private float textSpeed = 0.03f;
-    [SerializeField] private string[] Dialogues; // per-NPC dialogue
+    [SerializeField] private string[] Dialogues;
 
     [Header("UI Elements")]
     [SerializeField] private GameObject panel;
@@ -30,23 +30,20 @@ public class DialogueHandler : MonoBehaviour
             ForceClose();
     }
 
-    // Button3D should call this (no params) when using this NPC's Dialogues array
     public void Interact()
     {
         Interact(Dialogues);
     }
 
-    // If you ever want to pass dialogue from another script
     public void Interact(string[] dialogues)
     {
-        // If closed -> start
+
         if (panel == null || !panel.activeSelf)
         {
             StartDialogue(dialogues);
             return;
         }
 
-        // If open -> skip/next/close
         SkipOrNext();
     }
 
@@ -70,7 +67,6 @@ public class DialogueHandler : MonoBehaviour
             return;
         }
 
-        // If typing -> reveal instantly
         if (_isTyping)
         {
             if (_typingRoutine != null) StopCoroutine(_typingRoutine);
@@ -83,7 +79,6 @@ public class DialogueHandler : MonoBehaviour
             return;
         }
 
-        // Not typing -> next line or close
         _index++;
 
         if (_index >= _activeDialogues.Length)

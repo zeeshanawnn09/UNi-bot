@@ -70,9 +70,8 @@ public class CCBodyMovement : MonoBehaviour
 
         if (_controller.isGrounded && _input.jump)
         {
-            // v = sqrt(h * -2 * g)
             _verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
-            _input.jump = false; // consume jump
+            _input.jump = false;
         }
 
         _verticalVelocity += gravity * Time.deltaTime;

@@ -41,8 +41,7 @@ public class Button3D : MonoBehaviour
             if (button == null)
                 continue;
 
-            // ✅ Inactive buttons are ignored, but if they get activated mid-play,
-            // they'll be checked again next frame and will work normally.
+            
             if (!button.activeInHierarchy)
                 continue;
 
@@ -84,7 +83,6 @@ public class Button3D : MonoBehaviour
         {
             if (button == null) continue;
 
-            // optional: don't draw gizmo for inactive buttons
             if (!button.activeInHierarchy) continue;
 
             Gizmos.DrawWireSphere(button.transform.position, buttonRadius);
