@@ -1037,7 +1037,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3325996385922743278, guid: 25b878952da36994984a5d41ea300aaa, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3882236573164415990, guid: 25b878952da36994984a5d41ea300aaa, type: 3}
       propertyPath: cameraTransform
@@ -1172,7 +1172,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5842335866903980465, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8445952653821402417, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1254,7 +1254,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5842335866903980465, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6377930129085077353, guid: 0bdcc7002896e3d47bc711929bfa57b4, type: 3}
       propertyPath: field of view
@@ -1389,7 +1389,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2876275956910453568, guid: 7fbd1da22bfe8174e830a71f6b21e93c, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7336842221675697957, guid: 7fbd1da22bfe8174e830a71f6b21e93c, type: 3}
       propertyPath: m_LocalPosition.x
