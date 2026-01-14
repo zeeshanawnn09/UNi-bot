@@ -1,26 +1,31 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PuzzleSceneOne : MonoBehaviour
 {
     [Header("Puzzle Lights (index must match buttons)")]
     [SerializeField] private Light[] puzzleLights;
 
+    [Header("Toggle Objects (same size + same index as puzzleLights)")]
+    [SerializeField] private GameObject[] TGreenLight;
+    [SerializeField] private GameObject[] TRedLight;
+
     [Header("Button Manager (same order as lights)")]
     public Button3D buttonManager;
 
     [Header("Correct Button Order")]
-    [Tooltip("Indices into buttonObjects / puzzleLights, e.g. 0,2,1 for a 3-button puzzle.")]
     [SerializeField] private int[] correctOrder;
 
     [Header("Light Colors")]
-    public Color idleColor = Color.red;     // default red
-    public Color activeColor = Color.green; // turns green when correct
+    public Color idleColor = Color.red;
+    public Color activeColor = Color.green;
 
     [Header("Solved Indicator")]
-    public Light solvedLight;               // turns on when puzzle is solved
+    public Light solvedLight;
 
-    [HideInInspector]
-    public bool puzzleSolved = false;
+    [Header("Solved Object")]
+    [SerializeField] private GameObject PuzzleSolvedObject;
+
+    [HideInInspector] public bool puzzleSolved = false;
 
     private int currentStep = 0;
     private bool[] buttonUsed;
@@ -32,25 +37,23 @@ public class PuzzleSceneOne : MonoBehaviour
 
         InitLights();
 
-        // Make sure solved light starts off
         if (solvedLight != null)
             solvedLight.enabled = false;
+
+        if (PuzzleSolvedObject != null)
+            PuzzleSolvedObject.SetActive(false);
     }
 
     private void OnEnable()
     {
         if (buttonManager != null)
-        {
             buttonManager.onButtonPressed.AddListener(OnButtonPressed);
-        }
     }
 
     private void OnDisable()
     {
         if (buttonManager != null)
-        {
             buttonManager.onButtonPressed.RemoveListener(OnButtonPressed);
-        }
     }
 
     private void InitLights()
@@ -63,21 +66,20 @@ public class PuzzleSceneOne : MonoBehaviour
 
             puzzleLights[i].enabled = true;
             puzzleLights[i].color = idleColor;
+
+            // ✅ when idle (red): red obj ON, green obj OFF
+            ApplyToggleObjects(i, idleColor);
         }
     }
 
-    // Called from Button3D via UnityEvent
     public void OnButtonPressed(int pressedIndex)
     {
-        Debug.Log($"[PuzzleSceneOne] Button pressed index={pressedIndex}");
-
         if (puzzleSolved || correctOrder == null || correctOrder.Length == 0)
             return;
 
         if (puzzleLights == null || pressedIndex < 0 || pressedIndex >= puzzleLights.Length)
             return;
 
-        // Already used in sequence, ignore
         if (buttonUsed != null && buttonUsed[pressedIndex])
             return;
 
@@ -88,7 +90,6 @@ public class PuzzleSceneOne : MonoBehaviour
 
         if (pressedIndex == expectedIndex)
         {
-            // Correct button
             SetLightColor(pressedIndex, activeColor);
 
             if (buttonUsed != null && pressedIndex >= 0 && pressedIndex < buttonUsed.Length)
@@ -99,17 +100,16 @@ public class PuzzleSceneOne : MonoBehaviour
             if (currentStep >= correctOrder.Length)
             {
                 puzzleSolved = true;
-                Debug.Log("[PuzzleSceneOne] Puzzle solved!");
 
-                // Enable solved light
                 if (solvedLight != null)
                     solvedLight.enabled = true;
+
+                if (PuzzleSolvedObject != null)
+                    PuzzleSolvedObject.SetActive(true);
             }
         }
         else
         {
-            // Wrong button
-            Debug.LogWarning("[PuzzleSceneOne] Wrong button pressed. Resetting puzzle.");
             ResetPuzzle();
         }
     }
@@ -124,6 +124,24 @@ public class PuzzleSceneOne : MonoBehaviour
 
         light.enabled = true;
         light.color = color;
+
+        // ✅ keep toggle objects in sync
+        ApplyToggleObjects(index, color);
+    }
+
+    private void ApplyToggleObjects(int index, Color puzzleColor)
+    {
+        // exact compare as requested
+        bool isRed = puzzleColor == idleColor;
+        bool isGreen = puzzleColor == activeColor;
+
+        if (!isRed && !isGreen) return;
+
+        if (TRedLight != null && index >= 0 && index < TRedLight.Length && TRedLight[index] != null)
+            TRedLight[index].SetActive(isRed);
+
+        if (TGreenLight != null && index >= 0 && index < TGreenLight.Length && TGreenLight[index] != null)
+            TGreenLight[index].SetActive(isGreen);
     }
 
     private void ResetPuzzle()
@@ -139,12 +157,18 @@ public class PuzzleSceneOne : MonoBehaviour
             puzzleLights[i].enabled = true;
             puzzleLights[i].color = idleColor;
 
+            ApplyToggleObjects(i, idleColor);
+
             if (buttonUsed != null && i < buttonUsed.Length)
                 buttonUsed[i] = false;
         }
 
-        // Also turn off solved light on reset, just in case you reuse this
         if (solvedLight != null)
             solvedLight.enabled = false;
+
+        if (PuzzleSolvedObject != null)
+            PuzzleSolvedObject.SetActive(false);
+
+        puzzleSolved = false;
     }
 }

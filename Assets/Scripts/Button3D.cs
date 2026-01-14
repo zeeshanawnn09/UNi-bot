@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Events;
 
 public class Button3D : MonoBehaviour
@@ -16,9 +16,6 @@ public class Button3D : MonoBehaviour
 
     [Header("Events")]
     public ButtonPressedEvent onButtonPressed;
-
-    [System.Serializable]
-    public class BoolEvent : UnityEvent<bool> { }
 
     [Header("Range Events (optional)")]
     public UnityEvent onEnterAnyButtonRange;
@@ -44,6 +41,11 @@ public class Button3D : MonoBehaviour
             if (button == null)
                 continue;
 
+            // ✅ Inactive buttons are ignored, but if they get activated mid-play,
+            // they'll be checked again next frame and will work normally.
+            if (!button.activeInHierarchy)
+                continue;
+
             bool inButtonRange = Physics.CheckSphere(
                 button.transform.position,
                 buttonRadius,
@@ -62,7 +64,6 @@ public class Button3D : MonoBehaviour
             }
         }
 
-        // fire enter/exit events only when the state changes
         if (anyButtonInRangeNow != AnyButtonInRange)
         {
             AnyButtonInRange = anyButtonInRangeNow;
@@ -82,6 +83,10 @@ public class Button3D : MonoBehaviour
         foreach (var button in buttonObjects)
         {
             if (button == null) continue;
+
+            // optional: don't draw gizmo for inactive buttons
+            if (!button.activeInHierarchy) continue;
+
             Gizmos.DrawWireSphere(button.transform.position, buttonRadius);
         }
     }

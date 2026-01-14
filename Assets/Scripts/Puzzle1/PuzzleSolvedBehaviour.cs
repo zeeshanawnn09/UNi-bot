@@ -1,151 +1,83 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Playables;
 
 public class PuzzleSolvedBehaviour : MonoBehaviour
 {
-    [Header("Puzzle Manager")]
-    public PuzzleSceneOne puzzleSceneManager;
+    [Header("Fade Material Alpha")]
+    [Tooltip("Renderer whose material alpha will be changed.")]
+    [SerializeField] private Renderer targetRenderer;
 
-    [Header("Open Door Button")]
-    public Transform buttonTransform;
-    public float interactRadius = 1.5f;
-    public LayerMask playerLayer;
-    public KeyCode interactKey = KeyCode.E;
+    [Tooltip("Which material slot to edit (0 = first).")]
+    [SerializeField] private int materialIndex = 0;
 
-    [Header("Interaction UI")]
-    public bool showPromptUI = true;
-    public PromptUIController promptController;   // shared controller
+    [SerializeField] private float startAlpha = 0.7f;
+    [SerializeField] private float endAlpha = 1.0f;
+    [SerializeField] private float durationSeconds = 9.0f;
 
-    [Header("Doors To Open")]
-    public GameObject[] doorsToOpen;
-    public Vector3[] doorsRotation;
+    [Header("Timeline")]
+    [SerializeField] private PlayableDirector timelineDirector;
 
-    [Header("Door Open Animation")]
-    public float openDuration = 1.5f;
+    [Header("Elevator Buttons")]
+    [SerializeField] private GameObject ElevGreenBtn;
+    [SerializeField] private GameObject ElevRedBtn;
 
-    private bool hasOpened = false;
+    private bool hasTriggered = false;
+    private Coroutine fadeRoutine;
 
-    private Quaternion[] initialRotations;
-    private Quaternion[] targetRotations;
-
-    private bool wasPlayerInRange = false;
-
-    private void Start()
+    // Call this from your button UnityEvent
+    public void TriggerSolvedBehaviour()
     {
-        if (doorsToOpen != null && doorsRotation != null)
+        if (hasTriggered) return;
+        hasTriggered = true;
+
+        // 1) Fade alpha
+        if (targetRenderer != null)
         {
-            int count = Mathf.Min(doorsToOpen.Length, doorsRotation.Length);
-            initialRotations = new Quaternion[count];
-            targetRotations = new Quaternion[count];
-
-            for (int i = 0; i < count; i++)
-            {
-                if (doorsToOpen[i] == null) continue;
-
-                initialRotations[i] = doorsToOpen[i].transform.rotation;
-                targetRotations[i] = Quaternion.Euler(doorsRotation[i]);
-            }
+            if (fadeRoutine != null) StopCoroutine(fadeRoutine);
+            fadeRoutine = StartCoroutine(FadeAlphaRoutine());
         }
+
+        // 2) Play timeline
+        if (timelineDirector != null)
+            timelineDirector.Play();
+
+        // 3) Enable/Disable buttons
+        if (ElevGreenBtn != null) ElevGreenBtn.SetActive(true);
+        if (ElevRedBtn != null) ElevRedBtn.SetActive(false);
     }
 
-    private void Update()
+    private IEnumerator FadeAlphaRoutine()
     {
-        if (buttonTransform == null)
-            return;
+        // Use .materials so we can safely edit one slot at runtime
+        var mats = targetRenderer.materials;
+        if (mats == null || mats.Length == 0) yield break;
 
-        bool playerInRange = Physics.CheckSphere(
-            buttonTransform.position,
-            interactRadius,
-            playerLayer
-        );
+        if (materialIndex < 0 || materialIndex >= mats.Length) yield break;
 
-        // toggle prompt only when state changes
-        if (showPromptUI && promptController != null)
+        Material mat = mats[materialIndex];
+        if (mat == null) yield break;
+
+        // Assumes the material uses _Color (common in Standard/URP Lit etc.)
+        Color c = mat.color;
+        c.a = startAlpha;
+        mat.color = c;
+
+        float t = 0f;
+        while (t < durationSeconds)
         {
-            if (playerInRange && !wasPlayerInRange)
-            {
-                promptController.RequestShow();
-            }
-            else if (!playerInRange && wasPlayerInRange)
-            {
-                promptController.RequestHide();
-            }
-        }
+            t += Time.deltaTime;
+            float u = durationSeconds <= 0f ? 1f : Mathf.Clamp01(t / durationSeconds);
 
-        wasPlayerInRange = playerInRange;
+            Color cc = mat.color;
+            cc.a = Mathf.Lerp(startAlpha, endAlpha, u);
+            mat.color = cc;
 
-        if (!playerInRange)
-            return;
-
-        if (puzzleSceneManager == null || !puzzleSceneManager.puzzleSolved)
-            return;
-
-        if (Input.GetKeyDown(interactKey) && !hasOpened)
-        {
-            hasOpened = true;
-            StartCoroutine(OpenDoorsCoroutine());
-
-            // puzzle no longer needs the prompt
-            if (showPromptUI && promptController != null)
-                promptController.RequestHide();
-        }
-    }
-
-    private IEnumerator OpenDoorsCoroutine()
-    {
-        if (doorsToOpen == null || doorsRotation == null)
-            yield break;
-
-        int count = Mathf.Min(doorsToOpen.Length, doorsRotation.Length);
-        if (count == 0)
-            yield break;
-
-        if (initialRotations == null || targetRotations == null ||
-            initialRotations.Length != count || targetRotations.Length != count)
-        {
-            initialRotations = new Quaternion[count];
-            targetRotations = new Quaternion[count];
-
-            for (int i = 0; i < count; i++)
-            {
-                if (doorsToOpen[i] == null) continue;
-
-                initialRotations[i] = doorsToOpen[i].transform.rotation;
-                targetRotations[i] = Quaternion.Euler(doorsRotation[i]);
-            }
-        }
-
-        float time = 0f;
-        float duration = Mathf.Max(0.01f, openDuration);
-
-        while (time < duration)
-        {
-            float t = time / duration;
-
-            for (int i = 0; i < count; i++)
-            {
-                if (doorsToOpen[i] == null) continue;
-
-                doorsToOpen[i].transform.rotation =
-                    Quaternion.Slerp(initialRotations[i], targetRotations[i], t);
-            }
-
-            time += Time.deltaTime;
             yield return null;
         }
 
-        for (int i = 0; i < count; i++)
-        {
-            if (doorsToOpen[i] == null) continue;
-            doorsToOpen[i].transform.rotation = targetRotations[i];
-        }
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        if (buttonTransform == null) return;
-
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(buttonTransform.position, interactRadius);
+        Color final = mat.color;
+        final.a = endAlpha;
+        mat.color = final;
     }
 }
