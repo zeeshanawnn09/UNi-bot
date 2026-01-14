@@ -3,7 +3,32 @@ guid: a2f6c282c5877b5488ffcace76262908
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: XI_JT_FirstFlr_1_mat
+    second: {fileID: 2100000, guid: 9e124063a97cd9245b20e5b05b8258a6, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: XI_JT_FirstFlr_2_mat1
+    second: {fileID: 2100000, guid: 2d1ef4682e68d454e8c1f38d5266b550, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: XI_JT_Shop_GrndFlr_1_mat
+    second: {fileID: 2100000, guid: 2e30127108592ed4fae26b76c3f4ab26, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: XI_JT_Shop_GrndFlr_2_mat
+    second: {fileID: 2100000, guid: 930d26e690435e645afc2729522411b2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: XI_JT_Shop_Roof_1_mat
+    second: {fileID: 2100000, guid: 16df7e90a7951a943ab8338a37bf2d18, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
