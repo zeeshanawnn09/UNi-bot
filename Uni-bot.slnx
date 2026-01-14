@@ -1,8 +1,8 @@
 ﻿<Solution>
   <Project Path="MerryYellow.CodeAssist.Editor.csproj" />
-  <Project Path="EZhex1991.EZSoftBone.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
   <Project Path="EZhex1991.EZSoftBone.Editor.csproj" />
   <Project Path="Unity.RenderPipelines.HighDefinitionConfig.Editor.Tests.csproj" />
+  <Project Path="EZhex1991.EZSoftBone.csproj" />
   <Project Path="Unity.RenderPipelines.HighDefinition.Config.Runtime.csproj" />
 </Solution>
