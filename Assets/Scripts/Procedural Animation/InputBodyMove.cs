@@ -31,7 +31,6 @@ public class InputBodyMove : MonoBehaviour
 
     private void OnEnable()
     {
-        // Subscribe directly so we always get canceled (release)
         if (_sprintAction != null)
         {
             _sprintAction.performed += OnSprintPerformed;
@@ -50,13 +49,10 @@ public class InputBodyMove : MonoBehaviour
             _sprintAction.canceled -= OnSprintCanceled;
         }
 
-        // Safety: avoid stuck inputs if object disables mid-hold
         sprint = false;
         jump = false;
         move = Vector2.zero;
     }
-
-    // --- PlayerInput "Send Messages" callbacks (kept for compatibility) ---
 
     public void OnMove(InputValue value)
     {
@@ -68,14 +64,10 @@ public class InputBodyMove : MonoBehaviour
         JumpInput(value.isPressed);
     }
 
-    // Keep this so Send Messages can find the method (prevents MissingMethodException).
-    // If your setup DOES call it on release, this will work too.
     public void OnSprint(InputValue value)
     {
         SprintInput(value.isPressed);
     }
-
-    // --- Reliable sprint callbacks (performed/canceled) ---
 
     private void OnSprintPerformed(InputAction.CallbackContext ctx)
     {
@@ -86,8 +78,6 @@ public class InputBodyMove : MonoBehaviour
     {
         SprintInput(false);
     }
-
-    // --- Setters ---
 
     public void MoveInput(Vector2 newMoveDirection)
     {

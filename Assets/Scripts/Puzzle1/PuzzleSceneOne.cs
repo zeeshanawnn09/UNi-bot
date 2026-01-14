@@ -67,7 +67,6 @@ public class PuzzleSceneOne : MonoBehaviour
             puzzleLights[i].enabled = true;
             puzzleLights[i].color = idleColor;
 
-            // ✅ when idle (red): red obj ON, green obj OFF
             ApplyToggleObjects(i, idleColor);
         }
     }
@@ -125,7 +124,6 @@ public class PuzzleSceneOne : MonoBehaviour
         light.enabled = true;
         light.color = color;
 
-        // ✅ keep toggle objects in sync
         ApplyToggleObjects(index, color);
     }
 

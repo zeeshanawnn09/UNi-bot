@@ -4,20 +4,20 @@ using UnityEngine;
 public class ScannerToggleController : MonoBehaviour
 {
     [Header("References")]
-    [SerializeField] private RayconeScanner scanner;   // Your RayconeScanner component
-    [SerializeField] private GameObject scannerDecal;  // The decal holder GameObject
+    [SerializeField] private RayconeScanner scanner;
+    [SerializeField] private GameObject scannerDecal;
 
     [Header("Input")]
     [SerializeField] private KeyCode toggleKey = KeyCode.Q;
 
     public bool IsScannerOn { get; private set; }
 
-    // Broadcast: other scripts can subscribe to this
+    // Broadcast other scripts can subscribe to this
     public static event Action<bool> OnScannerToggled;
 
     private void Start()
     {
-        // Ensure scanner starts off (change if you want default ON)
+        // Ensure scanner starts off
         SetScanner(false);
     }
 
@@ -39,6 +39,6 @@ public class ScannerToggleController : MonoBehaviour
         if (scannerDecal != null)
             scannerDecal.SetActive(on);
 
-        OnScannerToggled?.Invoke(on); // broadcast to listeners
+        OnScannerToggled?.Invoke(on);
     }
 }
