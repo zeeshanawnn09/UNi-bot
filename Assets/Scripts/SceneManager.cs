@@ -11,6 +11,14 @@ public class SceneLoader : MonoBehaviour
     [SerializeField] private int LobbySceneIndex = 2;
     [SerializeField] private int Puzzle1SceneIndex = 3;
     [SerializeField] private int RoofTopSceneIndex = 4;
+    [SerializeField] private int CutsceneSceneIndex = 5;
+
+    [Header("Debug / Info")]
+    [SerializeField] private int previousSceneBuildIndex = -1; // view in inspector
+    [SerializeField] private int currentSceneBuildIndex = -1;  // view in inspector
+
+    public static int PreviousSceneBuildIndex => Instance ? Instance.previousSceneBuildIndex : -1;
+    public static int CurrentSceneBuildIndex => Instance ? Instance.currentSceneBuildIndex : -1;
 
     private void Awake()
     {
@@ -22,6 +30,22 @@ public class SceneLoader : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        currentSceneBuildIndex = SceneManager.GetActiveScene().buildIndex;
+
+        SceneManager.activeSceneChanged += OnActiveSceneChanged;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            SceneManager.activeSceneChanged -= OnActiveSceneChanged;
+    }
+
+    private void OnActiveSceneChanged(Scene oldScene, Scene newScene)
+    {
+        previousSceneBuildIndex = oldScene.buildIndex;
+        currentSceneBuildIndex = newScene.buildIndex;
     }
 
     public static void LoadMainMenu() => LoadByIndex(Instance.MainMenuSceneIndex);
@@ -29,6 +53,10 @@ public class SceneLoader : MonoBehaviour
     public static void LoadLobby() => LoadByIndex(Instance.LobbySceneIndex);
     public static void LoadPuzzle1() => LoadByIndex(Instance.Puzzle1SceneIndex);
     public static void LoadRoofTop() => LoadByIndex(Instance.RoofTopSceneIndex);
+    public static void LoadCutscene() => LoadByIndex(Instance.CutsceneSceneIndex);
+
+    // This is what your CutsceneSceneController calls:
+    public static void LoadByIndexPublic(int buildIndex) => LoadByIndex(buildIndex);
 
     private static void LoadByIndex(int buildIndex)
     {
@@ -44,6 +72,9 @@ public class SceneLoader : MonoBehaviour
             Debug.LogError($"Invalid buildIndex {buildIndex}. Valid range: 0 to {sceneCount - 1}. Check Build Settings order.");
             return;
         }
+
+        // record prev immediately (so it’s correct even before activeSceneChanged fires)
+        Instance.previousSceneBuildIndex = SceneManager.GetActiveScene().buildIndex;
 
         SceneManager.LoadScene(buildIndex);
     }
