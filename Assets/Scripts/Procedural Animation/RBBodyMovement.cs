@@ -47,6 +47,16 @@ public class RBBodyMovement : MonoBehaviour
     public bool IsGrounded { get; private set; }
     public Vector3 CurrentVelocity { get; private set; }
 
+    // Jump / land info
+    public bool JustJumped { get; private set; }   // true for one FixedUpdate when jump starts
+    public bool JustLanded { get; private set; }   // true for one FixedUpdate when we land
+    public float LastJumpTime { get; private set; }
+    public float LastLandTime { get; private set; }
+
+    // Ground tag info
+    public string CurrentGroundTag { get; private set; }
+    public System.Action<string> OnGroundTagChanged; // invoked when tag under the player changes (or becomes null)
+
     // Values RBProceduralAnimation reads (live)
     public float ProcVelocityMultiplier => (_input != null && _input.sprint) ? sprintVelocityMultiplier : walkVelocityMultiplier;
     public float ProcCycleSpeed => (_input != null && _input.sprint) ? sprintCycleSpeed : walkCycleSpeed;
@@ -57,6 +67,7 @@ public class RBBodyMovement : MonoBehaviour
     InputBodyMove _input;
 
     float _lastGroundedTime;
+    bool _wasGrounded;
 
     void Awake()
     {
@@ -69,12 +80,32 @@ public class RBBodyMovement : MonoBehaviour
 
         _rb.freezeRotation = true;
         _rb.useGravity = true;
+
+        // Initialize grounded state once
+        IsGrounded = GroundCheck(); // this also sets CurrentGroundTag
+        _wasGrounded = IsGrounded;
     }
 
     void FixedUpdate()
     {
-        IsGrounded = GroundCheck();
-        if (IsGrounded) _lastGroundedTime = Time.time;
+        // one-frame flags
+        JustJumped = false;
+        JustLanded = false;
+
+        bool wasGrounded = _wasGrounded;
+
+        IsGrounded = GroundCheck();   // also updates CurrentGroundTag + OnGroundTagChanged
+        if (IsGrounded)
+            _lastGroundedTime = Time.time;
+
+        // landing detection
+        if (!wasGrounded && IsGrounded)
+        {
+            JustLanded = true;
+            LastLandTime = Time.time;
+        }
+
+        _wasGrounded = IsGrounded;
 
         MoveAndRotate();
         HandleJump();
@@ -184,6 +215,9 @@ public class RBBodyMovement : MonoBehaviour
 #endif
 
         _input.jump = false;
+
+        JustJumped = true;
+        LastJumpTime = Time.time;
     }
 
     bool GroundCheck()
@@ -201,15 +235,34 @@ public class RBBodyMovement : MonoBehaviour
 
         float castRadius = Mathf.Max(0.001f, radius - groundCheckSkin);
 
-        return Physics.CapsuleCast(
+        RaycastHit hit;
+        bool grounded = Physics.CapsuleCast(
             p1, p2,
             castRadius,
             Vector3.down,
-            out _,
+            out hit,
             groundCheckDistance,
             groundLayers,
             QueryTriggerInteraction.Ignore
         );
+
+        UpdateGroundTag(grounded, hit);
+
+        return grounded;
+    }
+
+    void UpdateGroundTag(bool grounded, RaycastHit hit)
+    {
+        string newTag = null;
+
+        if (grounded && hit.collider != null)
+            newTag = hit.collider.tag;   // e.g. "Slide", "Grass", etc.
+
+        if (newTag != CurrentGroundTag)
+        {
+            CurrentGroundTag = newTag;
+            OnGroundTagChanged?.Invoke(CurrentGroundTag);
+        }
     }
 
     void OnDrawGizmosSelected()

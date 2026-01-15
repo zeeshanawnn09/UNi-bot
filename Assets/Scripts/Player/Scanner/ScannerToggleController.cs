@@ -10,6 +10,9 @@ public class ScannerToggleController : MonoBehaviour
     [Header("Input")]
     [SerializeField] private KeyCode toggleKey = KeyCode.Q;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource scannerAudioSource; // assign in Inspector (looping scan clip)
+
     public bool IsScannerOn { get; private set; }
 
     // Broadcast other scripts can subscribe to this
@@ -39,6 +42,25 @@ public class ScannerToggleController : MonoBehaviour
         if (scannerDecal != null)
             scannerDecal.SetActive(on);
 
+        HandleScannerAudio(on);
+
         OnScannerToggled?.Invoke(on);
+    }
+
+    private void HandleScannerAudio(bool on)
+    {
+        if (scannerAudioSource == null)
+            return;
+
+        if (on)
+        {
+            if (!scannerAudioSource.isPlaying)
+                scannerAudioSource.Play();
+        }
+        else
+        {
+            if (scannerAudioSource.isPlaying)
+                scannerAudioSource.Stop();
+        }
     }
 }

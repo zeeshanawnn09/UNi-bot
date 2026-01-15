@@ -1,148 +1,340 @@
+using System.Collections;
 using UnityEngine;
 using TMPro;
-using System.Collections;
 
-public class DialogueHandler : MonoBehaviour
+public class NPCDialogueTypewriter3D : MonoBehaviour
 {
-    [Header("Dialogue Settings")]
-    [SerializeField] private float textSpeed = 0.03f;
-    [SerializeField] private string[] Dialogues;
+    // One NPC owns the dialogue at a time
+    private static NPCDialogueTypewriter3D s_activeNPC;
 
-    [Header("UI Elements")]
-    [SerializeField] private GameObject panel;
-    [SerializeField] private TextMeshProUGUI dialogueText;
+    // One NPC owns the shared prompt at a time (closest in range)
+    private static NPCDialogueTypewriter3D s_promptOwner;
+    private static int s_promptFrame = -1;
+    private static float s_promptBestDist = float.MaxValue;
+    private static TMP_Text s_sharedPromptText;   // the actual shared TMP reference
+    private static string s_sharedPromptMessage;  // last message set
 
-    private string[] _activeDialogues;
-    private int _index;
-    private bool _isTyping;
+    [Header("Detection (3D)")]
+    public Transform interactionPoint;
+    public float interactRadius = 2f;
+    public LayerMask playerLayer;
+
+    [Header("Input")]
+    public KeyCode interactKey = KeyCode.E;
+    public KeyCode closeKey = KeyCode.Escape;
+
+    [Header("UI (Shared)")]
+    public GameObject panel;
+    public TMP_Text dialogueText;
+
+    [Header("Prompt UI (Shared)")]
+    public TMP_Text promptText; // assign SAME prompt TMP for all NPCs
+    public string promptMessage = "Press E";
+
+    [Header("Dialogue")]
+    [TextArea(2, 5)]
+    public string[] lines;
+    public float textSpeed = 0.03f;
+    public bool allowRepeat = true;
+
+    [Header("Audio (plays while a line is typing)")]
+    public AudioSource voiceSource;
+    public AudioClip maleClip;
+    public AudioClip femaleClip;
+    public enum VoiceType { Male, Female }
+    public VoiceType voiceType = VoiceType.Male;
+    public bool loopWhileTyping = true;
+
+    private int _lineIndex = 0;
+    private bool _isTyping = false;
+    private bool _seenAll = false;
     private Coroutine _typingRoutine;
+
+    private void Reset()
+    {
+        interactionPoint = transform;
+    }
 
     private void Awake()
     {
+        if (interactionPoint == null) interactionPoint = transform;
+
+        // Register shared prompt TMP once (first NPC that has it assigned)
+        if (promptText != null && s_sharedPromptText == null)
+        {
+            s_sharedPromptText = promptText;
+            s_sharedPromptText.gameObject.SetActive(false);
+            s_sharedPromptText.text = promptMessage;
+            s_sharedPromptMessage = promptMessage;
+        }
+
         if (panel != null) panel.SetActive(false);
+        if (dialogueText != null) dialogueText.text = "";
+    }
+
+    private void OnDisable()
+    {
+        if (s_activeNPC == this) s_activeNPC = null;
+        if (s_promptOwner == this) s_promptOwner = null;
     }
 
     private void Update()
     {
-        if (panel == null || !panel.activeSelf) return;
+        // If a dialogue is open, hide shared prompt and only let active NPC run
+        if (s_activeNPC != null && IsPanelOpen())
+        {
+            SetSharedPromptVisible(false);
 
-        if (Input.GetKeyDown(KeyCode.Escape))
-            ForceClose();
+            if (s_activeNPC != this)
+                return;
+        }
+
+        // Find player in range (3D)
+        bool inRange = TryGetPlayerInRange(out Vector3 playerPos);
+
+        // Pick prompt owner (closest NPC) ONLY when no dialogue is open
+        if (s_activeNPC == null && !IsPanelOpen())
+        {
+            UpdateSharedPromptOwnerSelection(inRange, playerPos);
+        }
+        else
+        {
+            SetSharedPromptVisible(false);
+        }
+
+        bool iAmActive = (s_activeNPC == this);
+
+        // Close dialogue (treat as all seen) - only active NPC
+        if (iAmActive && IsPanelOpen() && Input.GetKeyDown(closeKey))
+        {
+            CloseDialogue(treatAsAllSeen: true);
+            return;
+        }
+
+        if (Input.GetKeyDown(interactKey))
+        {
+            // Start dialogue (ONLY prompt owner when panel is closed)
+            if (!IsPanelOpen())
+            {
+                if (!inRange) return;
+
+                // If shared prompt exists, ONLY the selected prompt owner can start
+                if (s_sharedPromptText != null && s_promptOwner != this) return;
+
+                if (_seenAll && !allowRepeat) return;
+
+                s_activeNPC = this;
+                StartDialogue();
+                SetSharedPromptVisible(false);
+                return;
+            }
+
+            // Panel is open: only active NPC reaches here
+            if (_isTyping) SkipTyping();
+            else NextLineOrFinish();
+        }
     }
 
-    public void Interact()
+    private bool IsPanelOpen()
     {
-        Interact(Dialogues);
+        return panel != null && panel.activeSelf;
     }
 
-    public void Interact(string[] dialogues)
+    private bool TryGetPlayerInRange(out Vector3 playerPos)
     {
+        playerPos = Vector3.zero;
 
-        if (panel == null || !panel.activeSelf)
+        Vector3 center = interactionPoint != null ? interactionPoint.position : transform.position;
+
+        Collider[] hits = Physics.OverlapSphere(
+            center,
+            interactRadius,
+            playerLayer,
+            QueryTriggerInteraction.Collide
+        );
+
+        if (hits == null || hits.Length == 0)
+            return false;
+
+        // Use the closest hit as player position reference (works even if multiple colliders)
+        float best = float.MaxValue;
+        int bestIndex = 0;
+        for (int i = 0; i < hits.Length; i++)
         {
-            StartDialogue(dialogues);
-            return;
+            float d = (hits[i].transform.position - center).sqrMagnitude;
+            if (d < best)
+            {
+                best = d;
+                bestIndex = i;
+            }
         }
 
-        SkipOrNext();
+        playerPos = hits[bestIndex].transform.position;
+        return true;
     }
 
-    private void StartDialogue(string[] dialogues)
+    private void UpdateSharedPromptOwnerSelection(bool inRange, Vector3 playerPos)
     {
-        if (dialogues == null || dialogues.Length == 0) return;
+        // Reset selection once per frame
+        if (Time.frameCount != s_promptFrame)
+        {
+            s_promptFrame = Time.frameCount;
+            s_promptOwner = null;
+            s_promptBestDist = float.MaxValue;
+            SetSharedPromptVisible(false);
+        }
 
-        _activeDialogues = dialogues;
-        _index = 0;
+        if (s_sharedPromptText == null) return;
+        if (!inRange) return;
+        if (_seenAll && !allowRepeat) return;
 
-        if (panel != null) panel.SetActive(true);
+        Vector3 center = interactionPoint != null ? interactionPoint.position : transform.position;
+        float dist = Vector3.Distance(playerPos, center);
 
-        StartCurrentLine();
+        if (dist < s_promptBestDist)
+        {
+            s_promptBestDist = dist;
+            s_promptOwner = this;
+
+            s_sharedPromptMessage = promptMessage;
+            s_sharedPromptText.text = s_sharedPromptMessage;
+            SetSharedPromptVisible(true);
+        }
     }
 
-    private void SkipOrNext()
+    private void SetSharedPromptVisible(bool visible)
     {
-        if (_activeDialogues == null || _activeDialogues.Length == 0)
-        {
-            EndDialogue();
-            return;
-        }
-
-        if (_isTyping)
-        {
-            if (_typingRoutine != null) StopCoroutine(_typingRoutine);
-            _typingRoutine = null;
-            _isTyping = false;
-
-            if (dialogueText != null)
-                dialogueText.text = _activeDialogues[_index];
-
-            return;
-        }
-
-        _index++;
-
-        if (_index >= _activeDialogues.Length)
-        {
-            EndDialogue();
-            return;
-        }
-
-        StartCurrentLine();
+        if (s_sharedPromptText == null) return;
+        if (s_sharedPromptText.gameObject.activeSelf != visible)
+            s_sharedPromptText.gameObject.SetActive(visible);
     }
 
-    private void StartCurrentLine()
+    private void StartDialogue()
     {
-        if (_activeDialogues == null || _activeDialogues.Length == 0)
+        if (panel == null || dialogueText == null)
         {
-            EndDialogue();
+            CloseDialogue(treatAsAllSeen: true);
             return;
         }
 
-        if (_index < 0 || _index >= _activeDialogues.Length)
+        if (lines == null || lines.Length == 0)
         {
-            EndDialogue();
+            CloseDialogue(treatAsAllSeen: true);
             return;
         }
 
-        if (_typingRoutine != null) StopCoroutine(_typingRoutine);
-        _typingRoutine = StartCoroutine(TypeLine(_activeDialogues[_index]));
+        if (allowRepeat) _seenAll = false;
+
+        _lineIndex = 0;
+        panel.SetActive(true);
+        StartTypingLine(lines[_lineIndex]);
+    }
+
+    private void StartTypingLine(string line)
+    {
+        StopTypingRoutine();
+        dialogueText.text = "";
+        _typingRoutine = StartCoroutine(TypeLine(line));
     }
 
     private IEnumerator TypeLine(string line)
     {
         _isTyping = true;
-
-        if (dialogueText != null)
-            dialogueText.text = "";
-
-        float delay = Mathf.Max(0.0001f, textSpeed);
+        PlayVoice();
 
         for (int i = 0; i < line.Length; i++)
         {
-            if (dialogueText != null)
-                dialogueText.text += line[i];
-
-            yield return new WaitForSeconds(delay);
+            dialogueText.text += line[i];
+            yield return new WaitForSeconds(textSpeed);
         }
 
+        StopVoice();
         _isTyping = false;
         _typingRoutine = null;
     }
 
-    private void EndDialogue()
+    private void SkipTyping()
     {
-        _activeDialogues = null;
-        _index = 0;
+        if (!_isTyping) return;
+
+        StopTypingRoutine();
+        dialogueText.text = (_lineIndex >= 0 && lines != null && _lineIndex < lines.Length) ? lines[_lineIndex] : "";
+        StopVoice();
         _isTyping = false;
-
-        if (_typingRoutine != null) StopCoroutine(_typingRoutine);
-        _typingRoutine = null;
-
-        if (panel != null) panel.SetActive(false);
     }
 
-    public void ForceClose() => EndDialogue();
+    private void NextLineOrFinish()
+    {
+        if (lines == null || lines.Length == 0)
+        {
+            CloseDialogue(treatAsAllSeen: true);
+            return;
+        }
 
-    public bool IsOpen => panel != null && panel.activeSelf;
-    public bool IsTyping => _isTyping;
+        if (_lineIndex < lines.Length - 1)
+        {
+            _lineIndex++;
+            StartTypingLine(lines[_lineIndex]);
+        }
+        else
+        {
+            CloseDialogue(treatAsAllSeen: true);
+        }
+    }
+
+    private void CloseDialogue(bool treatAsAllSeen)
+    {
+        StopTypingRoutine();
+        StopVoice();
+        _isTyping = false;
+
+        if (dialogueText != null) dialogueText.text = "";
+        if (panel != null) panel.SetActive(false);
+
+        if (treatAsAllSeen)
+        {
+            _seenAll = true;
+            _lineIndex = (lines != null) ? lines.Length : 0;
+        }
+        else
+        {
+            _lineIndex = 0;
+        }
+
+        if (s_activeNPC == this) s_activeNPC = null;
+    }
+
+    private void StopTypingRoutine()
+    {
+        if (_typingRoutine != null)
+        {
+            StopCoroutine(_typingRoutine);
+            _typingRoutine = null;
+        }
+    }
+
+    private void PlayVoice()
+    {
+        if (voiceSource == null) return;
+
+        AudioClip clip = (voiceType == VoiceType.Male) ? maleClip : femaleClip;
+        if (clip == null) return;
+
+        voiceSource.clip = clip;
+        voiceSource.loop = loopWhileTyping;
+        voiceSource.Stop();
+        voiceSource.Play();
+    }
+
+    private void StopVoice()
+    {
+        if (voiceSource == null) return;
+        if (voiceSource.isPlaying) voiceSource.Stop();
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Vector3 center = interactionPoint != null ? interactionPoint.position : transform.position;
+        Gizmos.DrawWireSphere(center, interactRadius);
+    }
 }

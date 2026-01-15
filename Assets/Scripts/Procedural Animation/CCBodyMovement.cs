@@ -29,6 +29,12 @@ public class CCBodyMovement : MonoBehaviour
     public Vector3 CurrentVelocity { get; private set; }
     public bool IsGrounded => _controller != null && _controller.isGrounded;
 
+    // Jump / land data
+    public bool JustJumped { get; private set; }   // true only on frame jump begins
+    public bool JustLanded { get; private set; }   // true only on frame we land (air -> ground)
+    public float LastJumpTime { get; private set; }
+    public float LastLandTime { get; private set; }
+
     // Values CCProceduralAnimation reads (live)
     public float ProcVelocityMultiplier => (_input != null && _input.sprint) ? sprintVelocityMultiplier : walkVelocityMultiplier;
     public float ProcCycleSpeed => (_input != null && _input.sprint) ? sprintCycleSpeed : walkCycleSpeed;
@@ -39,6 +45,8 @@ public class CCBodyMovement : MonoBehaviour
 
     private float _currentSpeed;
     private float _verticalVelocity;
+
+    private bool _wasGrounded;
 
     private void Awake()
     {
@@ -52,14 +60,36 @@ public class CCBodyMovement : MonoBehaviour
             Debug.LogError("CCBodyMovement needs a CharacterController on the same GameObject.");
         if (_input == null)
             Debug.LogError("CCBodyMovement needs a InputBodyMove on the same GameObject.");
+
+        if (_controller != null)
+            _wasGrounded = _controller.isGrounded;
     }
 
     private void Update()
     {
         if (_controller == null || _input == null) return;
 
+        // one-frame flags reset
+        JustJumped = false;
+        JustLanded = false;
+
+        bool wasGrounded = _controller.isGrounded;
+
         HandleJumpAndGravity();
         HandleMovement();
+
+        bool groundedNow = _controller.isGrounded;
+
+        // landing detection (air -> ground)
+        if (!wasGrounded && groundedNow)
+        {
+            JustLanded = true;
+            LastLandTime = Time.time;
+        }
+
+        _wasGrounded = groundedNow;
+
+        CurrentVelocity = _controller.velocity;
     }
 
     private void HandleJumpAndGravity()
@@ -72,6 +102,9 @@ public class CCBodyMovement : MonoBehaviour
         {
             _verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
             _input.jump = false;
+
+            JustJumped = true;
+            LastJumpTime = Time.time;
         }
 
         _verticalVelocity += gravity * Time.deltaTime;
@@ -117,7 +150,5 @@ public class CCBodyMovement : MonoBehaviour
 
         // Move expects a delta (meters this frame)
         _controller.Move(velocity * Time.deltaTime);
-
-        CurrentVelocity = _controller.velocity;
     }
 }

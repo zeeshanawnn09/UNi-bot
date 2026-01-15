@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class ElevatorDoorsSequence : MonoBehaviour
 {
@@ -21,45 +21,56 @@ public class ElevatorDoorsSequence : MonoBehaviour
     [Tooltip("Seconds after elevator starts moving to pause ALL door animations")]
     public float pauseDoorsAfterSeconds = 2f;
 
+    [Header("Elevator Audio")]
+    [SerializeField] private AudioSource elevatorAudioSource;
+    [SerializeField] private AudioClip moveClip;
+    [SerializeField] private float audioStartTime = 5f;  // seconds
+    [SerializeField] private float audioEndTime = 20f; // seconds
+
     float moveT;
     float pauseTimer;
     bool moving;
     bool doorsPaused;
+
+    Coroutine elevatorAudioRoutine;
+
+    void Awake()
+    {
+        if (elevatorAudioSource != null)
+            elevatorAudioSource.playOnAwake = false;
+    }
 
     // Hook this to your UI Button OnClick()
     public void Play()
     {
         if (!elevator) return;
 
-        // Reset state
         moveT = 0f;
         pauseTimer = 0f;
         moving = true;
         doorsPaused = false;
 
-        // Start position
         elevator.position = elevatorPos1;
 
-        // As soon as elevator starts moving: Close = true
         SetBool(leftDoor, closeParam, true);
         SetBool(rightDoor, closeParam, true);
 
-        // Optional: make sure other params are in a safe state
         SetBool(leftDoor, openParam, false);
         SetBool(rightDoor, openParam, false);
         ResetTrigger(leftDoor, copenParam);
         ResetTrigger(rightDoor, copenParam);
 
-        // Ensure doors are unpaused at start
         SetPaused(leftDoor, false);
         SetPaused(rightDoor, false);
+
+        StartElevatorAudioSegment();
     }
 
     void Update()
     {
         if (!moving) return;
 
-        // Door pause timer (pause ALL door animations after X seconds)
+        // Door pause
         pauseTimer += Time.deltaTime;
         if (!doorsPaused && pauseTimer >= pauseDoorsAfterSeconds)
         {
@@ -92,23 +103,68 @@ public class ElevatorDoorsSequence : MonoBehaviour
 
     void OnArrived()
     {
-        // Unpause door animations
+        StopElevatorAudioSegment();
+
         SetPaused(leftDoor, false);
         SetPaused(rightDoor, false);
 
-        // Trigger Copen
         SetTrigger(leftDoor, copenParam);
         SetTrigger(rightDoor, copenParam);
 
-        // Set Open = false so it returns to Idle (your Idle looks "door open")
         SetBool(leftDoor, openParam, false);
         SetBool(rightDoor, openParam, false);
 
-        // Usually also turn off Close once opening starts
         SetBool(leftDoor, closeParam, false);
         SetBool(rightDoor, closeParam, false);
     }
 
+    // -------- AUDIO SEGMENT 5s → 20s --------
+
+    void StartElevatorAudioSegment()
+    {
+        if (elevatorAudioSource == null || moveClip == null) return;
+
+        if (elevatorAudioRoutine != null)
+            StopCoroutine(elevatorAudioRoutine);
+
+        elevatorAudioRoutine = StartCoroutine(PlayElevatorSegmentRoutine());
+    }
+
+    void StopElevatorAudioSegment()
+    {
+        if (elevatorAudioRoutine != null)
+        {
+            StopCoroutine(elevatorAudioRoutine);
+            elevatorAudioRoutine = null;
+        }
+
+        if (elevatorAudioSource != null)
+            elevatorAudioSource.Stop();
+    }
+
+    System.Collections.IEnumerator PlayElevatorSegmentRoutine()
+    {
+        float clipLen = moveClip.length;
+
+        float start = Mathf.Clamp(audioStartTime, 0f, clipLen);
+        float end = Mathf.Clamp(audioEndTime, start, clipLen);
+
+        elevatorAudioSource.loop = false;
+        elevatorAudioSource.clip = moveClip;
+        elevatorAudioSource.time = start;
+        elevatorAudioSource.Play();
+
+        // Run until time reaches end of segment or clip stops
+        while (elevatorAudioSource.isPlaying && elevatorAudioSource.time < end)
+        {
+            yield return null;
+        }
+
+        elevatorAudioSource.Stop();
+        elevatorAudioRoutine = null;
+    }
+
+    // -------- Helpers --------
     void SetPaused(Animator a, bool paused)
     {
         if (!a) return;

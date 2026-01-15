@@ -31,6 +31,10 @@ public class RBAnimAndRigController : MonoBehaviour
     [SerializeField] private float plantingDurationSeconds = 1.2f;
     [SerializeField] private float diggingDurationSeconds = 1.6f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;        // can be same as jump AudioSource
+    [SerializeField] private AudioClip diggingAudioClip;     // digging SFX
+
     private float _idleTimer = 0f;
     private bool _wasGrounded = true;
 
@@ -177,6 +181,12 @@ public class RBAnimAndRigController : MonoBehaviour
         SetRigEnabled(false);
 
         SetTriggerSafe(triggerName);
+
+        // --- Digging audio: play only for Digging action ---
+        if (triggerName == diggingTrigger && audioSource != null && diggingAudioClip != null)
+        {
+            audioSource.PlayOneShot(diggingAudioClip);
+        }
     }
 
     private void SetRigEnabled(bool enabled)

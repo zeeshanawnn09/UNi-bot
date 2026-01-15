@@ -31,6 +31,10 @@ public class CCAnimAndProceduralController : MonoBehaviour
     [SerializeField] private float plantingDurationSeconds = 1.2f;
     [SerializeField] private float diggingDurationSeconds = 1.6f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;        // SFX source (can be shared for PlayOneShot)
+    [SerializeField] private AudioClip diggingAudioClip;     // Digging SFX
+
     private float _idleTimer = 0f;
     private bool _wasGrounded = true;
 
@@ -53,6 +57,9 @@ public class CCAnimAndProceduralController : MonoBehaviour
         if (!animator) Debug.LogError("CCAnimAndProceduralController: Missing Animator (child).");
         if (!bodyMovement) Debug.LogError("CCAnimAndProceduralController: Missing CCBodyMovement (same GO).");
         if (!rigBuilder) Debug.LogWarning("CCAnimAndProceduralController: Missing RigBuilder (child).");
+
+        if (audioSource != null)
+            audioSource.playOnAwake = false;
     }
 
     private void Start()
@@ -164,6 +171,12 @@ public class CCAnimAndProceduralController : MonoBehaviour
 
         // fire trigger
         SetTriggerSafe(triggerName);
+
+        // --- Digging audio ---
+        if (triggerName == diggingTrigger && audioSource != null && diggingAudioClip != null)
+        {
+            audioSource.PlayOneShot(diggingAudioClip);
+        }
     }
 
     private void SetRigEnabled(bool enabled)
