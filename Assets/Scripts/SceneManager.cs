@@ -10,8 +10,7 @@ public class SceneLoader : MonoBehaviour
     [SerializeField] private int OpenWorldSceneIndex = 1;
     [SerializeField] private int LobbySceneIndex = 2;
     [SerializeField] private int Puzzle1SceneIndex = 3;
-    [SerializeField] private int Puzzle2SceneIndex = 4;
-    [SerializeField] private int RoofTopSceneIndex = 5;
+    [SerializeField] private int RoofTopSceneIndex = 4;
 
     private void Awake()
     {
@@ -29,7 +28,6 @@ public class SceneLoader : MonoBehaviour
     public static void LoadOpenWorld() => LoadByIndex(Instance.OpenWorldSceneIndex);
     public static void LoadLobby() => LoadByIndex(Instance.LobbySceneIndex);
     public static void LoadPuzzle1() => LoadByIndex(Instance.Puzzle1SceneIndex);
-    public static void LoadPuzzle2() => LoadByIndex(Instance.Puzzle2SceneIndex);
     public static void LoadRoofTop() => LoadByIndex(Instance.RoofTopSceneIndex);
 
     private static void LoadByIndex(int buildIndex)
