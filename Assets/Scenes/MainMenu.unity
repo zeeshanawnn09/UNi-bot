@@ -575,8 +575,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1292289631}
         m_TargetAssemblyTypeName: SceneLoader, Assembly-CSharp
-        m_MethodName: LoadSceneByName
-        m_Mode: 5
+        m_MethodName: LoadCutscene
+        m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -1063,8 +1063,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07af4002abf074b4481410e78760d3a6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sceneToLoad: SceneMapTest
-  sceneBuildIndex: 1
+  MainMenuSceneIndex: 0
+  OpenWorldSceneIndex: 1
+  LobbySceneIndex: 2
+  Puzzle1SceneIndex: 3
+  RoofTopSceneIndex: 4
+  CutsceneSceneIndex: 5
+  previousSceneBuildIndex: -1
+  currentSceneBuildIndex: -1
 --- !u!1 &1495767728
 GameObject:
   m_ObjectHideFlags: 0
@@ -1381,8 +1387,8 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1292289631}
         m_TargetAssemblyTypeName: SceneLoader, Assembly-CSharp
-        m_MethodName: QuitGame
-        m_Mode: 1
+        m_MethodName: set_enabled
+        m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine

@@ -22,6 +22,13 @@ public class PuzzleSolvedBehaviour : MonoBehaviour
     [SerializeField] private GameObject ElevGreenBtn;
     [SerializeField] private GameObject ElevRedBtn;
 
+    [Header("TV Static Flicker")]
+    [SerializeField] private GameObject TVStatic;
+    [Tooltip("Minimum time between TVStatic toggles.")]
+    [SerializeField] private float tvStaticMinInterval = 0.05f;
+    [Tooltip("Maximum time between TVStatic toggles (clamped to 0.5s max).")]
+    [SerializeField] private float tvStaticMaxInterval = 0.5f;
+
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;   // single AudioSource
     [SerializeField] private AudioClip startClip;       // plays once
@@ -30,6 +37,7 @@ public class PuzzleSolvedBehaviour : MonoBehaviour
     private bool hasTriggered = false;
     private Coroutine fadeRoutine;
     private Coroutine audioRoutine;
+    private Coroutine tvStaticRoutine;
 
     private void Awake()
     {
@@ -38,6 +46,13 @@ public class PuzzleSolvedBehaviour : MonoBehaviour
 
         if (audioSource != null)
             audioSource.playOnAwake = false;
+
+        // Make sure TVStatic starts in a known state (off is usually nicer)
+        if (TVStatic != null)
+            TVStatic.SetActive(false);
+
+        // Clamp max interval to never exceed 0.5s
+        tvStaticMaxInterval = Mathf.Min(tvStaticMaxInterval, 0.5f);
     }
 
     // Call this from your button UnityEvent
@@ -64,6 +79,11 @@ public class PuzzleSolvedBehaviour : MonoBehaviour
         // 4) Audio sequence
         if (audioRoutine != null) StopCoroutine(audioRoutine);
         audioRoutine = StartCoroutine(PlaySolvedAudioSequence());
+
+        // 5) Start TV static flicker (on/off at random intervals <= 0.5s)
+        if (tvStaticRoutine != null) StopCoroutine(tvStaticRoutine);
+        if (TVStatic != null)
+            tvStaticRoutine = StartCoroutine(TVStaticFlickerRoutine());
     }
 
     private IEnumerator FadeAlphaRoutine()
@@ -116,6 +136,26 @@ public class PuzzleSolvedBehaviour : MonoBehaviour
             audioSource.loop = true;
             audioSource.clip = loopClip;
             audioSource.Play();
+        }
+    }
+
+    private IEnumerator TVStaticFlickerRoutine()
+    {
+        if (TVStatic == null) yield break;
+
+        // Ensure sane values
+        float minInterval = Mathf.Max(0.0f, tvStaticMinInterval);
+        float maxInterval = Mathf.Clamp(tvStaticMaxInterval, minInterval, 0.5f);
+
+        // Flicker forever after puzzle solved
+        while (true)
+        {
+            // Toggle active state
+            TVStatic.SetActive(!TVStatic.activeSelf);
+
+            // Wait a random time, never more than 0.5s
+            float wait = Random.Range(minInterval, maxInterval);
+            yield return new WaitForSeconds(wait);
         }
     }
 }
