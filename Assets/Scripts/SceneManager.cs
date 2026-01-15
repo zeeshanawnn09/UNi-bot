@@ -3,48 +3,81 @@ using UnityEngine.SceneManagement;
 
 public class SceneLoader : MonoBehaviour
 {
-    public static SceneLoader Instance { get; private set; }
+    [Header("Scene to Load")]
+    [Tooltip("Enter the exact scene name (must be added in Build Settings)")]
+    [SerializeField] private string sceneToLoad = "SceneMapTest";
 
-    [Header("Scene Build Indices (File > Build Settings order)")]
-    [SerializeField] private int MainMenuSceneIndex = 0;
-    [SerializeField] private int OpenWorldSceneIndex = 1;
-    [SerializeField] private int LobbySceneIndex = 2;
-    [SerializeField] private int Puzzle1SceneIndex = 3;
-    [SerializeField] private int RoofTopSceneIndex = 4;
+    [Header("OR use Build Index")]
+    [Tooltip("Set to -1 to use scene name above, otherwise uses this build index")]
+    [SerializeField] private int sceneBuildIndex = 1;
 
-    private void Awake()
+    /// <summary>
+    /// Call this method from your Start Game button's OnClick() event
+    /// </summary>
+    public void LoadScene()
     {
-        if (Instance != null && Instance != this)
+        if (sceneBuildIndex >= 0)
         {
-            Destroy(gameObject);
-            return;
+            // Load by build index
+            if (sceneBuildIndex < SceneManager.sceneCountInBuildSettings)
+            {
+                SceneManager.LoadScene(sceneBuildIndex);
+            }
+            else
+            {
+                Debug.LogError($"Invalid build index {sceneBuildIndex}. Check File > Build Settings.");
+            }
         }
-
-        Instance = this;
-        DontDestroyOnLoad(gameObject);
+        else if (!string.IsNullOrEmpty(sceneToLoad))
+        {
+            // Load by scene name
+            SceneManager.LoadScene(sceneToLoad);
+        }
+        else
+        {
+            Debug.LogError("No scene specified! Set either Scene Name or Build Index in the Inspector.");
+        }
     }
 
-    public static void LoadMainMenu() => LoadByIndex(Instance.MainMenuSceneIndex);
-    public static void LoadOpenWorld() => LoadByIndex(Instance.OpenWorldSceneIndex);
-    public static void LoadLobby() => LoadByIndex(Instance.LobbySceneIndex);
-    public static void LoadPuzzle1() => LoadByIndex(Instance.Puzzle1SceneIndex);
-    public static void LoadRoofTop() => LoadByIndex(Instance.RoofTopSceneIndex);
-
-    private static void LoadByIndex(int buildIndex)
+    /// <summary>
+    /// Load a specific scene by name (can be called from other scripts or buttons)
+    /// </summary>
+    public void LoadSceneByName(string sceneName)
     {
-        if (Instance == null)
+        if (!string.IsNullOrEmpty(sceneName))
         {
-            Debug.LogError("SceneLoader not found. Add it once in the first scene.");
-            return;
+            SceneManager.LoadScene(sceneName);
         }
-
-        int sceneCount = SceneManager.sceneCountInBuildSettings;
-        if (buildIndex < 0 || buildIndex >= sceneCount)
+        else
         {
-            Debug.LogError($"Invalid buildIndex {buildIndex}. Valid range: 0 to {sceneCount - 1}. Check Build Settings order.");
-            return;
+            Debug.LogError("Scene name is empty!");
         }
+    }
 
-        SceneManager.LoadScene(buildIndex);
+    /// <summary>
+    /// Load a specific scene by build index (can be called from other scripts or buttons)
+    /// </summary>
+    public void LoadSceneByIndex(int buildIndex)
+    {
+        if (buildIndex >= 0 && buildIndex < SceneManager.sceneCountInBuildSettings)
+        {
+            SceneManager.LoadScene(buildIndex);
+        }
+        else
+        {
+            Debug.LogError($"Invalid build index {buildIndex}. Valid range: 0 to {SceneManager.sceneCountInBuildSettings - 1}");
+        }
+    }
+
+    /// <summary>
+    /// Quit the application (for Quit button)
+    /// </summary>
+    public void QuitGame()
+    {
+        #if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+        #else
+        Application.Quit();
+        #endif
     }
 }
