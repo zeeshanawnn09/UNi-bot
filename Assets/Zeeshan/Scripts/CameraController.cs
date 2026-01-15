@@ -5,19 +5,18 @@ using Unity.Cinemachine;
 public class CameraController : MonoBehaviour
 {
     [Header("Cinemachine Cameras")]
-    [SerializeField] private CinemachineCamera virtualCamera;
-    [SerializeField] private CinemachineCamera freeLookCamera;
+    [SerializeField] private CinemachineCamera virtualCamera;   // Dolly cam
+    [SerializeField] private CinemachineCamera freeLookCamera;  // TPP cam
 
     [Header("Dolly Configuration")]
     [SerializeField] private CinemachineSplineDolly dollyComponent;
     [SerializeField] private float dollyStartPosition = 0f; // Point A
     [SerializeField] private float dollyEndPosition = 1f;   // Point B
-    [SerializeField] private float dollySpeed = 0.5f;
 
     [Header("Camera Priorities")]
-    [SerializeField] private int virtualCameraCinematicPriority = 10;
+    [SerializeField] private int virtualCameraCinematicPriority = 20;
     [SerializeField] private int virtualCameraDefaultPriority = 1;
-    [SerializeField] private int freeLookCameraPriority = 5;
+    [SerializeField] private int freeLookCameraPriority = 10;
 
     private Coroutine dollyMoveCoroutine;
     private bool isCinematicActive = false;
@@ -26,10 +25,16 @@ public class CameraController : MonoBehaviour
     {
         // Ensure Free Look has priority on start
         if (freeLookCamera != null)
+        {
+            freeLookCamera.enabled = true;
             freeLookCamera.Priority = freeLookCameraPriority;
+        }
 
         if (virtualCamera != null)
+        {
+            virtualCamera.enabled = false;
             virtualCamera.Priority = virtualCameraDefaultPriority;
+        }
 
         // Get dolly component if not assigned
         if (dollyComponent == null && virtualCamera != null)
@@ -43,12 +48,18 @@ public class CameraController : MonoBehaviour
     public void StartCinematic(float duration)
     {
         if (isCinematicActive) return;
-
         isCinematicActive = true;
 
-        // Switch to virtual camera
+        // Disable TPP cam
+        if (freeLookCamera != null)
+            freeLookCamera.enabled = false;
+
+        // Enable dolly cam + give it highest priority
         if (virtualCamera != null)
+        {
+            virtualCamera.enabled = true;
             virtualCamera.Priority = virtualCameraCinematicPriority;
+        }
 
         // Start dolly movement
         if (dollyMoveCoroutine != null)
@@ -60,12 +71,7 @@ public class CameraController : MonoBehaviour
     public void EndCinematic()
     {
         if (!isCinematicActive) return;
-
         isCinematicActive = false;
-
-        // Switch back to free look camera
-        if (virtualCamera != null)
-            virtualCamera.Priority = virtualCameraDefaultPriority;
 
         // Reset dolly to start position for next time
         if (dollyComponent != null)
@@ -77,6 +83,20 @@ public class CameraController : MonoBehaviour
             StopCoroutine(dollyMoveCoroutine);
             dollyMoveCoroutine = null;
         }
+
+        // Turn off dolly cam, restore default priority
+        if (virtualCamera != null)
+        {
+            virtualCamera.Priority = virtualCameraDefaultPriority;
+            virtualCamera.enabled = false;
+        }
+
+        // Re-enable TPP cam
+        if (freeLookCamera != null)
+        {
+            freeLookCamera.Priority = freeLookCameraPriority;
+            freeLookCamera.enabled = true;
+        }
     }
 
     private IEnumerator MoveDollyCart(float duration)
@@ -87,18 +107,18 @@ public class CameraController : MonoBehaviour
         float startPos = dollyStartPosition;
         float endPos = dollyEndPosition;
 
+        // avoid 0 duration explosion
+        duration = Mathf.Max(0.0001f, duration);
+
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             float t = Mathf.Clamp01(elapsed / duration);
 
-            // Smooth interpolation
             dollyComponent.CameraPosition = Mathf.Lerp(startPos, endPos, t);
-
             yield return null;
         }
 
-        // Ensure we reach the exact end position
         dollyComponent.CameraPosition = endPos;
         dollyMoveCoroutine = null;
     }

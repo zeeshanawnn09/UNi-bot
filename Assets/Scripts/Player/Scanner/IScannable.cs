@@ -1,5 +1,4 @@
 
-
 public interface IScannable
 {
     void OnScanEnter(object scanner);

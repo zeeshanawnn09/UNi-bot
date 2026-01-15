@@ -2,70 +2,101 @@ using UnityEngine;
 
 public class PlantDigController : MonoBehaviour
 {
+    [Header("Refs")]
+    [SerializeField] private Animator animator;
+    [SerializeField] private CameraController cameraController;
+
+    [Header("Optional FX GameObjects")]
     [SerializeField] private GameObject diggingGameObject;
     [SerializeField] private GameObject plantingGameObject;
-    [SerializeField] private RBAnimAndRigController animController;
-    [SerializeField] private PromptUIController promptUIController;
-    [SerializeField] private CameraController cameraController;
+
+    [Header("Animator Setup")]
+    [Tooltip("Name of the Animator state that plays when the Planting trigger is fired.")]
+    [SerializeField] private string plantingStateName = "Planting";
+
+    [Tooltip("Animator layer index where the planting state lives (usually 0).")]
+    [SerializeField] private int layerIndex = 0;
+
+    [Header("Cinematic Duration")]
+    [Tooltip("If > 0, use this duration. If <= 0, use Animator state's length.")]
+    [SerializeField] private float plantingCinematicDurationOverride = -1f;
+
+    private int _plantingStateHash;
+    private bool _cinematicActive = false;
+    private float _cachedPlantingLength = 1f;
+
+    private void Reset()
+    {
+        animator = GetComponentInChildren<Animator>();
+        cameraController = FindObjectOfType<CameraController>();
+    }
 
     private void Awake()
     {
-        // On awake: digging is enabled, planting is disabled
-        if (diggingGameObject != null)
-            diggingGameObject.SetActive(true);
+        if (!animator) animator = GetComponentInChildren<Animator>();
 
-        if (plantingGameObject != null)
-            plantingGameObject.SetActive(false);
-    }
-
-    private void Start()
-    {
-        // Subscribe to animation events
-        if (animController != null)
+        if (!animator)
         {
-            animController.OnActionStarting += OnActionStarting;
-            animController.OnActionCompleted += OnActionCompleted;
+            Debug.LogError("PlantDigController: No Animator assigned or found.", this);
+            enabled = false;
+            return;
         }
+
+        _plantingStateHash = Animator.StringToHash(plantingStateName);
+        CachePlantingClipLength();
     }
 
-    private void OnDestroy()
+    private void Update()
     {
-        // Unsubscribe to prevent memory leaks
-        if (animController != null)
+        if (!animator || cameraController == null)
+            return;
+
+        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(layerIndex);
+        bool inPlanting =
+            stateInfo.shortNameHash == _plantingStateHash ||
+            stateInfo.IsName(plantingStateName);
+
+        // Just entered Planting state
+        if (inPlanting && !_cinematicActive)
         {
-            animController.OnActionStarting -= OnActionStarting;
-            animController.OnActionCompleted -= OnActionCompleted;
-        }
-    }
+            _cinematicActive = true;
 
-    private void OnActionStarting(string triggerName, float duration)
-    {
-        // Start cinematic camera when digging or planting starts
-        if (triggerName == "Digging" || triggerName == "Planting")
+            float duration = plantingCinematicDurationOverride > 0f
+                ? plantingCinematicDurationOverride
+                : stateInfo.length > 0f ? stateInfo.length : _cachedPlantingLength;
+
+            cameraController.StartCinematic(duration);
+
+            if (diggingGameObject != null) diggingGameObject.SetActive(false);
+            if (plantingGameObject != null) plantingGameObject.SetActive(true);
+        }
+        // Just exited Planting state
+        else if (!inPlanting && _cinematicActive)
         {
-            if (cameraController != null)
-                cameraController.StartCinematic(duration);
-        }
-    }
+            _cinematicActive = false;
 
-    private void OnActionCompleted(string triggerName)
-    {
-        // End cinematic camera
-        if (cameraController != null)
             cameraController.EndCinematic();
 
-        // When digging animation completes, swap the game objects
-        if (triggerName == "Digging")
+            if (plantingGameObject != null) plantingGameObject.SetActive(false);
+            if (diggingGameObject != null) diggingGameObject.SetActive(true);
+        }
+    }
+
+    private void CachePlantingClipLength()
+    {
+        _cachedPlantingLength = 1f;
+
+        if (animator.runtimeAnimatorController == null)
+            return;
+
+        var clips = animator.runtimeAnimatorController.animationClips;
+        for (int i = 0; i < clips.Length; i++)
         {
-            if (diggingGameObject != null)
-                diggingGameObject.SetActive(false);
-
-            if (plantingGameObject != null)
-                plantingGameObject.SetActive(true);
-
-            // Hide the prompt UI
-            if (promptUIController != null)
-                promptUIController.RequestHide();
+            if (clips[i].name == plantingStateName)
+            {
+                _cachedPlantingLength = clips[i].length;
+                break;
+            }
         }
     }
 }
