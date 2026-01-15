@@ -21,7 +21,22 @@ public class Button3D : MonoBehaviour
     public UnityEvent onEnterAnyButtonRange;
     public UnityEvent onExitAnyButtonRange;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;          // assign in Inspector
+    [SerializeField] private AudioClip defaultButtonClip;      // fallback clip for any button
+    [SerializeField] private AudioClip[] perButtonClips;       // optional: one per button index
+
     public bool AnyButtonInRange { get; private set; }
+
+    private void Awake()
+    {
+        // If you forget to assign it, try to grab from same GameObject.
+        if (audioSource == null)
+            audioSource = GetComponent<AudioSource>();
+
+        if (audioSource != null)
+            audioSource.playOnAwake = false;
+    }
 
     private void Update()
     {
@@ -41,7 +56,6 @@ public class Button3D : MonoBehaviour
             if (button == null)
                 continue;
 
-            
             if (!button.activeInHierarchy)
                 continue;
 
@@ -58,7 +72,12 @@ public class Button3D : MonoBehaviour
                 if (Input.GetKeyDown(interactKey))
                 {
                     Debug.Log($"[Button3D] Button pressed index={i}");
+
+                    // Invoke event
                     onButtonPressed?.Invoke(i);
+
+                    // Play audio
+                    PlayButtonSound(i);
                 }
             }
         }
@@ -74,6 +93,28 @@ public class Button3D : MonoBehaviour
         }
     }
 
+    private void PlayButtonSound(int buttonIndex)
+    {
+        if (audioSource == null) return;
+
+        AudioClip clipToPlay = null;
+
+        // Try per-button clip first
+        if (perButtonClips != null &&
+            buttonIndex >= 0 &&
+            buttonIndex < perButtonClips.Length)
+        {
+            clipToPlay = perButtonClips[buttonIndex];
+        }
+
+        // Fallback to default clip
+        if (clipToPlay == null)
+            clipToPlay = defaultButtonClip;
+
+        if (clipToPlay != null)
+            audioSource.PlayOneShot(clipToPlay);
+    }
+
     private void OnDrawGizmosSelected()
     {
         if (buttonObjects == null) return;
@@ -82,7 +123,6 @@ public class Button3D : MonoBehaviour
         foreach (var button in buttonObjects)
         {
             if (button == null) continue;
-
             if (!button.activeInHierarchy) continue;
 
             Gizmos.DrawWireSphere(button.transform.position, buttonRadius);

@@ -22,8 +22,23 @@ public class PuzzleSolvedBehaviour : MonoBehaviour
     [SerializeField] private GameObject ElevGreenBtn;
     [SerializeField] private GameObject ElevRedBtn;
 
+    [Header("Audio")]
+    [SerializeField] private AudioSource audioSource;   // single AudioSource
+    [SerializeField] private AudioClip startClip;       // plays once
+    [SerializeField] private AudioClip loopClip;        // then loops
+
     private bool hasTriggered = false;
     private Coroutine fadeRoutine;
+    private Coroutine audioRoutine;
+
+    private void Awake()
+    {
+        if (audioSource == null)
+            audioSource = GetComponent<AudioSource>();
+
+        if (audioSource != null)
+            audioSource.playOnAwake = false;
+    }
 
     // Call this from your button UnityEvent
     public void TriggerSolvedBehaviour()
@@ -45,20 +60,21 @@ public class PuzzleSolvedBehaviour : MonoBehaviour
         // 3) Enable/Disable buttons
         if (ElevGreenBtn != null) ElevGreenBtn.SetActive(true);
         if (ElevRedBtn != null) ElevRedBtn.SetActive(false);
+
+        // 4) Audio sequence
+        if (audioRoutine != null) StopCoroutine(audioRoutine);
+        audioRoutine = StartCoroutine(PlaySolvedAudioSequence());
     }
 
     private IEnumerator FadeAlphaRoutine()
     {
-        // Use .materials so we can safely edit one slot at runtime
         var mats = targetRenderer.materials;
         if (mats == null || mats.Length == 0) yield break;
-
         if (materialIndex < 0 || materialIndex >= mats.Length) yield break;
 
         Material mat = mats[materialIndex];
         if (mat == null) yield break;
 
-        // Assumes the material uses _Color (common in Standard/URP Lit etc.)
         Color c = mat.color;
         c.a = startAlpha;
         mat.color = c;
@@ -79,5 +95,27 @@ public class PuzzleSolvedBehaviour : MonoBehaviour
         Color final = mat.color;
         final.a = endAlpha;
         mat.color = final;
+    }
+
+    private IEnumerator PlaySolvedAudioSequence()
+    {
+        if (audioSource == null) yield break;
+
+        // First clip: play once, no loop
+        if (startClip != null)
+        {
+            audioSource.loop = false;
+            audioSource.clip = startClip;
+            audioSource.Play();
+            yield return new WaitForSeconds(startClip.length);
+        }
+
+        // Second clip: play in loop
+        if (loopClip != null)
+        {
+            audioSource.loop = true;
+            audioSource.clip = loopClip;
+            audioSource.Play();
+        }
     }
 }
