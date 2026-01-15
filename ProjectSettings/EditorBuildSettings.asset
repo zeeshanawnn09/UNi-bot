@@ -9,7 +9,7 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: dbf4551aed2c64d429aed80dd56ba515
   - enabled: 1
-    path: Assets/Scenes/SceneMapTest.unity
+    path: Assets/Scenes/MetalSlumCity.unity
     guid: 26b88a8dcbb6bab42aa5c75fa5b3509a
   - enabled: 1
     path: Assets/Scenes/TowerA/Lobby.unity
