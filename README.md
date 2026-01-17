@@ -153,6 +153,10 @@ This contrast reinforces the game’s environmental message.
   - ChatGPT – Documentation structuring
   - Grammarly – Grammar and paraphrasing
 
+
+🎥 Gameplay Video: [https://www.youtube.com/watch?v=abc123XYZ](https://youtu.be/_7kgqeiNi0s)
+
+
 ---
 
 ## 🌱 Message
