@@ -9,7 +9,7 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: dbf4551aed2c64d429aed80dd56ba515
   - enabled: 1
-    path: Assets/Scenes/SceneMapTest.unity
+    path: Assets/Scenes/MetalSlumCity.unity
     guid: 26b88a8dcbb6bab42aa5c75fa5b3509a
   - enabled: 1
     path: Assets/Scenes/TowerA/Lobby.unity
@@ -20,6 +20,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/TowerA/Rooftop.unity
     guid: 0137116facb05a54aa1189ac2963b888
+  - enabled: 1
+    path: Assets/Scenes/Cutscene.unity
+    guid: 4676294f9c244524eba61ecb85df0445
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: c5c3eba197f9bcc4e98d2c12908c1bd4, type: 3}
+    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 9efeef66b42747945be731875a33e8bd, type: 2}
   m_UseUCBPForAssetBundles: 0
