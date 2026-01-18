@@ -1,6 +1,11 @@
 # UNI-bot 🌱  
 *A third-person walking puzzle game about restoring nature in a polluted city*
 
+<p align="center">
+  <img src="Assets/AllAssets/Posters/WhatsApp Image 2025-12-20 at 2.36.40 PM (1).jpeg" width="900">
+</p>
+
+
 ---
 
 ## 🎮 Project Overview
