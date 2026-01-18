@@ -1,4 +1,4 @@
-# UNI-bot 🌱  
+# UNI-Verse🌱  
 *A third-person walking puzzle game about restoring nature in a polluted city*
 
 <p align="center">
