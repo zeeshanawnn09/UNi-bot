@@ -9,43 +9,45 @@ public class CCAnimAndProceduralController : MonoBehaviour
     [SerializeField] private CCBodyMovement bodyMovement;
     [SerializeField] private RigBuilder rigBuilder;
 
+    [Header("Camera Dolly / Cinematic")]
+    [SerializeField] private CameraController cameraController;
+    [Tooltip("If <= 0, will use plantingLockSeconds as the dolly duration.")]
+    [SerializeField] private float plantingDollyDuration = -1f;
+
     [Header("Animator Params (must match your Animator)")]
-    [SerializeField] private string plantingTrigger = "Planting";
-    [SerializeField] private string diggingTrigger = "Digging";
-    [SerializeField] private string midAirBool = "MidAir";
-    [SerializeField] private string idleBool = "Idle";
-    [SerializeField] private string jumpedTrigger = "Jumped";
+    [SerializeField] private string plantingTrigger = "Planting"; // TRIGGER in Animator
+    [SerializeField] private string midAirBool = "MidAir";        // Bool
+    [SerializeField] private string idleBool = "Idle";            // Bool
+    [SerializeField] private string jumpedTrigger = "Jumped";     // Trigger
 
     [Header("Idle")]
-    [Tooltip("How long the player must be not moving (while grounded) before Idle becomes true.")]
     [SerializeField] private float idleDelaySeconds = 1.0f;
-
-    [Tooltip("Horizontal speed below this counts as not moving.")]
     [SerializeField] private float moveSpeedThreshold = 0.15f;
 
     [Header("RigBuilder Enable Rule")]
-    [Tooltip("If true, RigBuilder will only run while grounded.")]
     [SerializeField] private bool rigOnlyWhenGrounded = true;
 
-    [Header("Action Durations (Different Timers)")]
-    [SerializeField] private float plantingDurationSeconds = 1.2f;
-    [SerializeField] private float diggingDurationSeconds = 1.6f;
+    [Header("Planting Lock (Timer)")]
+    [Tooltip("Minimum time to keep movement OFF + rig OFF after starting planting.")]
+    [SerializeField] private float plantingLockSeconds = 1.2f;
 
-    [Header("Audio")]
-    [SerializeField] private AudioSource audioSource;        // SFX source (can be shared for PlayOneShot)
-    [SerializeField] private AudioClip diggingAudioClip;     // Digging SFX
+    [Header("Audio (optional)")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip diggingAudioClip;
 
     private float _idleTimer = 0f;
     private bool _wasGrounded = true;
 
-    private bool _isAction = false;
-    private float _actionTimer = 0f;
+    // planting is handled purely by this lock, not by an Animator Bool
+    private bool _isPlantingLock = false;
+    private float _plantingLockTimer = 0f;
 
     private void Reset()
     {
         animator = GetComponentInChildren<Animator>();
         bodyMovement = GetComponent<CCBodyMovement>();
         rigBuilder = GetComponentInChildren<RigBuilder>();
+        audioSource = GetComponentInChildren<AudioSource>();
     }
 
     private void Awake()
@@ -54,12 +56,11 @@ public class CCAnimAndProceduralController : MonoBehaviour
         if (!bodyMovement) bodyMovement = GetComponent<CCBodyMovement>();
         if (!rigBuilder) rigBuilder = GetComponentInChildren<RigBuilder>();
 
-        if (!animator) Debug.LogError("CCAnimAndProceduralController: Missing Animator (child).");
-        if (!bodyMovement) Debug.LogError("CCAnimAndProceduralController: Missing CCBodyMovement (same GO).");
-        if (!rigBuilder) Debug.LogWarning("CCAnimAndProceduralController: Missing RigBuilder (child).");
+        if (!animator) Debug.LogError("CCAnimAndProceduralController: Missing Animator (child).", this);
+        if (!bodyMovement) Debug.LogError("CCAnimAndProceduralController: Missing CCBodyMovement (same GO).", this);
+        if (!rigBuilder) Debug.LogWarning("CCAnimAndProceduralController: Missing RigBuilder (child).", this);
 
-        if (audioSource != null)
-            audioSource.playOnAwake = false;
+        if (audioSource != null) audioSource.playOnAwake = false;
     }
 
     private void Start()
@@ -67,10 +68,10 @@ public class CCAnimAndProceduralController : MonoBehaviour
         if (bodyMovement) _wasGrounded = bodyMovement.IsGrounded;
 
         _idleTimer = 0f;
-        _isAction = false;
-        _actionTimer = 0f;
-
         SetBoolSafe(idleBool, false);
+
+        _isPlantingLock = false;
+        _plantingLockTimer = 0f;
     }
 
     private void LateUpdate()
@@ -79,23 +80,30 @@ public class CCAnimAndProceduralController : MonoBehaviour
 
         bool grounded = bodyMovement.IsGrounded;
 
-        // --- Action timer ---
-        if (_isAction)
+        // --- planting lock timer ---
+        if (_isPlantingLock)
         {
-            _actionTimer -= Time.deltaTime;
-            if (_actionTimer <= 0f)
+            _plantingLockTimer -= Time.deltaTime;
+            if (_plantingLockTimer <= 0f)
             {
-                _isAction = false;
-                _actionTimer = 0f;
+                _isPlantingLock = false;
+                _plantingLockTimer = 0f;
 
+                // re-enable movement
                 if (bodyMovement) bodyMovement.enabled = true;
+
+                // END Dolly / cinematic here
+                if (cameraController != null)
+                    cameraController.EndCinematic();
             }
         }
 
+        // --- movement read ---
         Vector3 v = bodyMovement.CurrentVelocity;
         float horizontalSpeed = new Vector3(v.x, 0f, v.z).magnitude;
         bool moving = horizontalSpeed > moveSpeedThreshold;
 
+        // --- animator values ---
         SetBoolSafe(midAirBool, !grounded);
 
         if (_wasGrounded && !grounded)
@@ -105,9 +113,12 @@ public class CCAnimAndProceduralController : MonoBehaviour
 
         _wasGrounded = grounded;
 
+        bool planting = _isPlantingLock;
+
+        // --- Idle (never while planting/lock) ---
         bool idle = GetBoolSafe(idleBool);
 
-        if (_isAction || !grounded || moving)
+        if (planting || !grounded || moving)
         {
             _idleTimer = 0f;
             if (idle) SetBoolSafe(idleBool, false);
@@ -132,7 +143,7 @@ public class CCAnimAndProceduralController : MonoBehaviour
         {
             bool allowRig = true;
 
-            if (_isAction) allowRig = false;
+            if (planting) allowRig = false;
             if (rigOnlyWhenGrounded && !grounded) allowRig = false;
             if (idle) allowRig = false;
 
@@ -140,43 +151,67 @@ public class CCAnimAndProceduralController : MonoBehaviour
         }
     }
 
-    public void StartPlanting()
+    // Called from Button3D event
+    public void StartPlantingSequence()
     {
-        StartAction(plantingTrigger, plantingDurationSeconds);
-    }
+        if (!animator)
+        {
+            Debug.LogWarning("CCAnimAndProceduralController: StartPlantingSequence called but Animator is missing.", this);
+            return;
+        }
 
-    public void StartDigging()
-    {
-        StartAction(diggingTrigger, diggingDurationSeconds);
-    }
+        Debug.Log("CCAnimAndProceduralController: StartPlantingSequence CALLED", this);
 
-    private void StartAction(string triggerName, float durationSeconds)
-    {
-        if (_isAction) return; // blocks spam / restart
+        // only allow while grounded
+        if (bodyMovement && !bodyMovement.IsGrounded)
+        {
+            Debug.Log("CCAnimAndProceduralController: BLOCKED (not grounded)", this);
+            return;
+        }
 
-        if (bodyMovement && !bodyMovement.IsGrounded) return;
+        if (_isPlantingLock)
+        {
+            Debug.Log("CCAnimAndProceduralController: BLOCKED (already in planting lock)", this);
+            return;
+        }
 
-        _isAction = true;
-        _actionTimer = Mathf.Max(0.01f, durationSeconds);
+        // Fire planting TRIGGER in Animator
+        if (!HasParam(plantingTrigger, AnimatorControllerParameterType.Trigger))
+        {
+            Debug.LogWarning(
+                $"CCAnimAndProceduralController: Animator Trigger '{plantingTrigger}' not found or not Trigger. Check Animator parameters.",
+                this);
+        }
+        else
+        {
+            Debug.Log($"CCAnimAndProceduralController: setting Trigger '{plantingTrigger}'", this);
+            SetTriggerSafe(plantingTrigger);
+        }
 
-        // stop movement
+        // lock movement + rig for minimum time
+        _isPlantingLock = true;
+        _plantingLockTimer = Mathf.Max(0.01f, plantingLockSeconds);
+
         if (bodyMovement) bodyMovement.enabled = false;
 
-        // cancel idle immediately
         SetBoolSafe(idleBool, false);
         _idleTimer = 0f;
 
-        // rig OFF immediately
         SetRigEnabled(false);
 
-        // fire trigger
-        SetTriggerSafe(triggerName);
-
-        // --- Digging audio ---
-        if (triggerName == diggingTrigger && audioSource != null && diggingAudioClip != null)
+        // START Dolly / cinematic **right when trigger is fired**
+        if (cameraController != null)
         {
-            audioSource.PlayOneShot(diggingAudioClip);
+            float dur = plantingDollyDuration > 0f
+                ? plantingDollyDuration
+                : plantingLockSeconds;
+
+            cameraController.StartCinematic(dur);
         }
+
+        // optional digging sound at start
+        if (audioSource != null && diggingAudioClip != null)
+            audioSource.PlayOneShot(diggingAudioClip);
     }
 
     private void SetRigEnabled(bool enabled)
@@ -185,9 +220,7 @@ public class CCAnimAndProceduralController : MonoBehaviour
         if (rigBuilder.enabled == enabled) return;
 
         rigBuilder.enabled = enabled;
-
-        if (enabled)
-            rigBuilder.Build();
+        if (enabled) rigBuilder.Build();
     }
 
     // --- Safe Animator helpers ---
@@ -195,8 +228,10 @@ public class CCAnimAndProceduralController : MonoBehaviour
     {
         if (string.IsNullOrEmpty(name) || !animator) return false;
         foreach (var p in animator.parameters)
+        {
             if (p.type == type && p.name == name)
                 return true;
+        }
         return false;
     }
 

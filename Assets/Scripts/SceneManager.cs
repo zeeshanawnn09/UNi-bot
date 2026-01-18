@@ -3,81 +3,79 @@ using UnityEngine.SceneManagement;
 
 public class SceneLoader : MonoBehaviour
 {
-    [Header("Scene to Load")]
-    [Tooltip("Enter the exact scene name (must be added in Build Settings)")]
-    [SerializeField] private string sceneToLoad = "SceneMapTest";
+    public static SceneLoader Instance { get; private set; }
 
-    [Header("OR use Build Index")]
-    [Tooltip("Set to -1 to use scene name above, otherwise uses this build index")]
-    [SerializeField] private int sceneBuildIndex = 1;
+    [Header("Scene Build Indices (File > Build Settings order)")]
+    [SerializeField] private int MainMenuSceneIndex = 0;
+    [SerializeField] private int OpenWorldSceneIndex = 1;
+    [SerializeField] private int LobbySceneIndex = 2;
+    [SerializeField] private int Puzzle1SceneIndex = 3;
+    [SerializeField] private int RoofTopSceneIndex = 4;
+    [SerializeField] private int CutsceneSceneIndex = 5;
 
-    /// <summary>
-    /// Call this method from your Start Game button's OnClick() event
-    /// </summary>
-    public void LoadScene()
+    [Header("Debug / Info")]
+    [SerializeField] private int previousSceneBuildIndex = -1; // view in inspector
+    [SerializeField] private int currentSceneBuildIndex = -1;  // view in inspector
+
+    public static int PreviousSceneBuildIndex => Instance ? Instance.previousSceneBuildIndex : -1;
+    public static int CurrentSceneBuildIndex => Instance ? Instance.currentSceneBuildIndex : -1;
+
+    private void Awake()
     {
-        if (sceneBuildIndex >= 0)
+        if (Instance != null && Instance != this)
         {
-            // Load by build index
-            if (sceneBuildIndex < SceneManager.sceneCountInBuildSettings)
-            {
-                SceneManager.LoadScene(sceneBuildIndex);
-            }
-            else
-            {
-                Debug.LogError($"Invalid build index {sceneBuildIndex}. Check File > Build Settings.");
-            }
+            Destroy(gameObject);
+            return;
         }
-        else if (!string.IsNullOrEmpty(sceneToLoad))
-        {
-            // Load by scene name
-            SceneManager.LoadScene(sceneToLoad);
-        }
-        else
-        {
-            Debug.LogError("No scene specified! Set either Scene Name or Build Index in the Inspector.");
-        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+
+        currentSceneBuildIndex = SceneManager.GetActiveScene().buildIndex;
+
+        SceneManager.activeSceneChanged += OnActiveSceneChanged;
     }
 
-    /// <summary>
-    /// Load a specific scene by name (can be called from other scripts or buttons)
-    /// </summary>
-    public void LoadSceneByName(string sceneName)
+    private void OnDestroy()
     {
-        if (!string.IsNullOrEmpty(sceneName))
-        {
-            SceneManager.LoadScene(sceneName);
-        }
-        else
-        {
-            Debug.LogError("Scene name is empty!");
-        }
+        if (Instance == this)
+            SceneManager.activeSceneChanged -= OnActiveSceneChanged;
     }
 
-    /// <summary>
-    /// Load a specific scene by build index (can be called from other scripts or buttons)
-    /// </summary>
-    public void LoadSceneByIndex(int buildIndex)
+    private void OnActiveSceneChanged(Scene oldScene, Scene newScene)
     {
-        if (buildIndex >= 0 && buildIndex < SceneManager.sceneCountInBuildSettings)
-        {
-            SceneManager.LoadScene(buildIndex);
-        }
-        else
-        {
-            Debug.LogError($"Invalid build index {buildIndex}. Valid range: 0 to {SceneManager.sceneCountInBuildSettings - 1}");
-        }
+        previousSceneBuildIndex = oldScene.buildIndex;
+        currentSceneBuildIndex = newScene.buildIndex;
     }
 
-    /// <summary>
-    /// Quit the application (for Quit button)
-    /// </summary>
-    public void QuitGame()
+    public static void LoadMainMenu() => LoadByIndex(Instance.MainMenuSceneIndex);
+    public static void LoadOpenWorld() => LoadByIndex(Instance.OpenWorldSceneIndex);
+    public static void LoadLobby() => LoadByIndex(Instance.LobbySceneIndex);
+    public static void LoadPuzzle1() => LoadByIndex(Instance.Puzzle1SceneIndex);
+    public static void LoadRoofTop() => LoadByIndex(Instance.RoofTopSceneIndex);
+    public static void LoadCutscene() => LoadByIndex(Instance.CutsceneSceneIndex);
+
+    // This is what your CutsceneSceneController calls:
+    public static void LoadByIndexPublic(int buildIndex) => LoadByIndex(buildIndex);
+
+    private static void LoadByIndex(int buildIndex)
     {
-        #if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-        #else
-        Application.Quit();
-        #endif
+        if (Instance == null)
+        {
+            Debug.LogError("SceneLoader not found. Add it once in the first scene.");
+            return;
+        }
+
+        int sceneCount = SceneManager.sceneCountInBuildSettings;
+        if (buildIndex < 0 || buildIndex >= sceneCount)
+        {
+            Debug.LogError($"Invalid buildIndex {buildIndex}. Valid range: 0 to {sceneCount - 1}. Check Build Settings order.");
+            return;
+        }
+
+        // record prev immediately (so it’s correct even before activeSceneChanged fires)
+        Instance.previousSceneBuildIndex = SceneManager.GetActiveScene().buildIndex;
+
+        SceneManager.LoadScene(buildIndex);
     }
 }
