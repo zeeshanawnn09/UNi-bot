@@ -37,6 +37,10 @@ public class CutsceneSceneController : MonoBehaviour
     public CutsceneChoice intro;
     public CutsceneChoice end;
 
+    [Header("Default Route")]
+    [Tooltip("If nothing matches comingFromBuildIndex, use this choice instead of error.")]
+    public DebugCutscenePick defaultRoute = DebugCutscenePick.Intro;
+
     [Header("Debug Fallback (when PreviousSceneBuildIndex is -1)")]
     public bool useDebugFallbackIfNoPreviousScene = true;
     public DebugCutscenePick debugPick = DebugCutscenePick.Intro;
@@ -55,14 +59,33 @@ public class CutsceneSceneController : MonoBehaviour
     {
         int prev = SceneLoader.PreviousSceneBuildIndex;
 
+        Debug.Log($"[CutsceneSceneController] prev={prev} introFrom={(intro != null ? intro.comingFromBuildIndex : -999)} endFrom={(end != null ? end.comingFromBuildIndex : -999)}");
+
+        // If SceneLoader didn't exist / no previous recorded, use debug pick (optional)
         if (prev == -1 && useDebugFallbackIfNoPreviousScene)
+        {
             _active = (debugPick == DebugCutscenePick.Intro) ? intro : end;
+        }
         else
-            _active = Pick(prev);
+        {
+            _active = PickOrDefault(prev);
+        }
 
         if (_active == null)
         {
-            Debug.LogError("[CutsceneSceneController] No cutscene choice configured for this entry.");
+            Debug.LogError("[CutsceneSceneController] No cutscene choice configured (intro/end missing).");
+            return;
+        }
+
+        if (_active.clip == null)
+        {
+            Debug.LogError("[CutsceneSceneController] Active cutscene clip is not assigned.");
+            return;
+        }
+
+        if (_active.nextSceneBuildIndex < 0)
+        {
+            Debug.LogError("[CutsceneSceneController] Active nextSceneBuildIndex is not set.");
             return;
         }
 
@@ -76,11 +99,14 @@ public class CutsceneSceneController : MonoBehaviour
             Finish(stopVideo: true);
     }
 
-    private CutsceneChoice Pick(int prev)
+    private CutsceneChoice PickOrDefault(int prev)
     {
+        // Exact matches first
         if (intro != null && intro.comingFromBuildIndex == prev) return intro;
         if (end != null && end.comingFromBuildIndex == prev) return end;
-        return null;
+
+        // If no match, choose a default route so we never return null
+        return (defaultRoute == DebugCutscenePick.Intro) ? intro : end;
     }
 
     private IEnumerator PlayThenLoad()
@@ -92,12 +118,6 @@ public class CutsceneSceneController : MonoBehaviour
         if (videoPlayer == null)
         {
             Debug.LogError("[CutsceneSceneController] VideoPlayer not assigned.");
-            yield break;
-        }
-
-        if (_active.clip == null)
-        {
-            Debug.LogError("[CutsceneSceneController] Active clip is not assigned.");
             yield break;
         }
 
@@ -117,7 +137,7 @@ public class CutsceneSceneController : MonoBehaviour
         videoPlayer.clip = _active.clip;
         videoPlayer.Play();
 
-        double duration = _active.clip.length;
+        double duration = _active.clip != null ? _active.clip.length : 0;
         float waitSeconds = (duration > 0) ? (float)duration : _active.fallbackSeconds;
 
         if (useRealtimeWait) yield return new WaitForSecondsRealtime(waitSeconds);
@@ -136,12 +156,6 @@ public class CutsceneSceneController : MonoBehaviour
 
         if (loadingUI != null) loadingUI.SetActive(false);
         if (cutsceneUIRoot != null) cutsceneUIRoot.SetActive(false);
-
-        if (_active.nextSceneBuildIndex < 0)
-        {
-            Debug.LogError("[CutsceneSceneController] nextSceneBuildIndex not set for active cutscene.");
-            return;
-        }
 
         SceneLoader.LoadByIndexPublic(_active.nextSceneBuildIndex);
     }

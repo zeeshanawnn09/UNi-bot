@@ -774,8 +774,9 @@ MonoBehaviour:
     clip: {fileID: 32900000, guid: 99920b8a4be43ae4aa31c65a0642d538, type: 3}
     nextSceneBuildIndex: 0
     fallbackSeconds: 8
-  useDebugFallbackIfNoPreviousScene: 1
-  debugPick: 0
+  defaultRoute: 0
+  useDebugFallbackIfNoPreviousScene: 0
+  debugPick: 1
   useRealtimeWait: 1
   allowSkip: 1
   skipKey: 32

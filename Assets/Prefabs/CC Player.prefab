@@ -303,7 +303,7 @@ MonoBehaviour:
   bodyGroundCheckOffset: -0.06
   bodyGroundCheckDistance: 0.44
   readValuesFromBodyMovement: 1
-  bodyMovement: {fileID: 0}
+  bodyMovement: {fileID: 3882236573164415990}
 --- !u!82 &7685494002219025918
 AudioSource:
   m_ObjectHideFlags: 0
@@ -318,7 +318,7 @@ AudioSource:
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
   m_Volume: 1
-  m_Pitch: 1
+  m_Pitch: -0.66
   Loop: 0
   Mute: 0
   Spatialize: 0
@@ -326,7 +326,7 @@ AudioSource:
   Priority: 128
   DopplerLevel: 1
   MinDistance: 1
-  MaxDistance: 500
+  MaxDistance: 5
   Pan2D: 0
   rolloffMode: 0
   BypassEffects: 0
@@ -361,7 +361,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -413,14 +413,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 660de33ef79af474ba8a0d610a3ef364, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  proceduralAnimation: {fileID: 4290696884696802321}
-  audioSource: {fileID: 7685494002219025918}
+  proc: {fileID: 0}
+  defaultClip: {fileID: 8300000, guid: 7d624089b916158438e4128df8af76c9, type: 3}
+  tagSounds:
+  - tag: Untagged
+    clip: {fileID: 8300000, guid: 7d624089b916158438e4128df8af76c9, type: 3}
   groundMask:
     serializedVersion: 2
-    m_Bits: 4294967295
-  rayUpOffset: 0.15
-  rayDownDistance: 0.6
-  footstepSets: []
+    m_Bits: 0
+  rayUp: 0.5
+  rayDown: 2
+  volume: 1
+  minInterval: 0.08
+  debugLogs: 1
 --- !u!1 &217252156836363314
 GameObject:
   m_ObjectHideFlags: 0
@@ -2107,7 +2112,7 @@ SkinnedMeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 8748892135801146194, guid: 80d5a87c74bbbd140bcc048993bd14f2, type: 3}
+  - {fileID: 2100000, guid: dde44bf95a6611948aa033747e0c64fa, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -3007,7 +3012,7 @@ GameObject:
   - component: {fileID: 8719230965598912621}
   m_Layer: 7
   m_Name: CC Player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -3125,7 +3130,8 @@ MonoBehaviour:
   rigBuilder: {fileID: 8678765329749489466}
   cameraController: {fileID: 8719230965598912621}
   plantingDollyDuration: -1
-  plantingTrigger: Planting
+  plantingTrigger: Digging
+  plantingStateName: Planting
   midAirBool: MidAir
   idleBool: Idle
   jumpedTrigger: Jumped
@@ -4847,8 +4853,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5850383387580517994}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.15960653, y: -0.79883903, z: 0.24186899, w: 0.5271446}
-  m_LocalPosition: {x: 2.7582455, y: 1.928, z: 1.1798668}
+  m_LocalRotation: {x: 0.019890923, y: -0.9548058, z: 0.28920183, w: 0.0656703}
+  m_LocalPosition: {x: 0.41072923, y: 1.9280002, z: 2.9717507}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

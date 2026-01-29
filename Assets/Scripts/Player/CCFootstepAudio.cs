@@ -1,102 +1,100 @@
 using System;
 using UnityEngine;
 
-[RequireComponent(typeof(AudioSource))]
+[DisallowMultipleComponent]
 public class CCFootstepAudio : MonoBehaviour
 {
     [Serializable]
-    public class TagFootstepSet
+    public struct TagSound
     {
-        public string tag;           // e.g. "Grass", "Stone"
-        public AudioClip[] clips;    // one or more clips for this surface
+        public string tag;      // e.g. "Stone", "Wood"
+        public AudioClip clip;
     }
 
     [Header("References")]
-    [SerializeField] private CCProceduralAnimation proceduralAnimation;
-    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private CCProceduralAnimation proc;
+
+    [Header("Clips")]
+    [SerializeField] private AudioClip defaultClip;   // used for Untagged / no match
+    [SerializeField] private TagSound[] tagSounds;
 
     [Header("Ground Detection")]
-    [SerializeField] private LayerMask groundMask = ~0;
-    [SerializeField] private float rayUpOffset = 0.15f;
-    [SerializeField] private float rayDownDistance = 0.6f;
+    [SerializeField] private LayerMask groundMask = 0;  // leave 0 to use proc's layerMask
+    [SerializeField] private float rayUp = 0.5f;
+    [SerializeField] private float rayDown = 2.0f;
 
-    [Header("Footstep Sets")]
-    [SerializeField] private TagFootstepSet[] footstepSets;
+    [Header("Playback")]
+    [SerializeField] private float volume = 1f;
+    [SerializeField] private float minInterval = 0.08f;
+    [SerializeField] private bool debugLogs = true;
 
-    private void Reset()
-    {
-        audioSource = GetComponent<AudioSource>();
-        proceduralAnimation = GetComponentInParent<CCProceduralAnimation>();
-    }
+    private float _lastPlayTime;
 
     private void Awake()
     {
-        if (audioSource == null)
-            audioSource = GetComponent<AudioSource>();
-        if (proceduralAnimation == null)
-            proceduralAnimation = GetComponentInParent<CCProceduralAnimation>();
+        if (!proc) proc = GetComponent<CCProceduralAnimation>();
 
-        if (audioSource != null)
-            audioSource.playOnAwake = false;
+        // If you didn't set groundMask here, use the same mask the procedural script uses.
+        if (groundMask.value == 0 && proc != null)
+            groundMask = proc.GetLayerMask();
     }
 
     private void OnEnable()
     {
-        if (proceduralAnimation != null)
-            proceduralAnimation.OnStepFinished += HandleStepFinished;
+        if (proc != null)
+            proc.OnStepFinished += HandleStep;
     }
 
     private void OnDisable()
     {
-        if (proceduralAnimation != null)
-            proceduralAnimation.OnStepFinished -= HandleStepFinished;
+        if (proc != null)
+            proc.OnStepFinished -= HandleStep;
     }
 
-    // Matches EventHandler<Vector3>: (object sender, Vector3 footPos)
-    private void HandleStepFinished(object sender, Vector3 footWorldPos)
+    private void HandleStep(Vector3 footPos)
     {
-        if (audioSource == null) return;
+        if (Time.time - _lastPlayTime < minInterval)
+            return;
 
-        string tag = GetGroundTagAt(footWorldPos);
-        AudioClip clip = GetClipForTag(tag);
+        _lastPlayTime = Time.time;
 
-        if (clip != null)
+        string groundTag = ResolveGroundTag(footPos);
+        AudioClip clip = PickClip(groundTag);
+
+        if (clip == null)
         {
-            audioSource.PlayOneShot(clip);
+            if (debugLogs) Debug.LogWarning("[CCFootstepAudio] No clip assigned (defaultClip is null and no tag match).", this);
+            return;
         }
+
+        if (debugLogs)
+            Debug.Log($"[CCFootstepAudio] Step groundTag={groundTag} clip={clip.name}", this);
+
+        AudioSource.PlayClipAtPoint(clip, footPos, volume);
     }
 
-    private string GetGroundTagAt(Vector3 footWorldPos)
+    private string ResolveGroundTag(Vector3 footPos)
     {
-        Vector3 origin = footWorldPos + Vector3.up * rayUpOffset;
+        Vector3 start = footPos + Vector3.up * rayUp;
 
-        if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit,
-                            rayDownDistance, groundMask, QueryTriggerInteraction.Ignore))
-        {
-            return hit.collider != null ? hit.collider.tag : null;
-        }
+        if (Physics.Raycast(start, Vector3.down, out RaycastHit hit, rayUp + rayDown, groundMask, QueryTriggerInteraction.Ignore))
+            return hit.collider.tag;
 
-        return null;
+        return "Untagged";
     }
 
-    private AudioClip GetClipForTag(string tag)
+    private AudioClip PickClip(string tag)
     {
-        if (string.IsNullOrEmpty(tag) || footstepSets == null)
-            return null;
+        bool isUntagged = string.IsNullOrEmpty(tag) || tag == "Untagged";
+        if (isUntagged)
+            return defaultClip;
 
-        for (int i = 0; i < footstepSets.Length; i++)
+        for (int i = 0; i < tagSounds.Length; i++)
         {
-            var set = footstepSets[i];
-            if (set == null || set.clips == null || set.clips.Length == 0)
-                continue;
-
-            if (!string.Equals(set.tag, tag, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            int index = UnityEngine.Random.Range(0, set.clips.Length);
-            return set.clips[index];
+            if (!string.IsNullOrEmpty(tagSounds[i].tag) && tagSounds[i].tag == tag)
+                return tagSounds[i].clip != null ? tagSounds[i].clip : defaultClip;
         }
 
-        return null;
+        return defaultClip;
     }
 }

@@ -15,7 +15,8 @@ public class CCAnimAndProceduralController : MonoBehaviour
     [SerializeField] private float plantingDollyDuration = -1f;
 
     [Header("Animator Params (must match your Animator)")]
-    [SerializeField] private string plantingTrigger = "Planting"; // TRIGGER in Animator
+    [SerializeField] private string plantingTrigger = "Planting";
+    [SerializeField] private string plantingStateName = "Planting";
     [SerializeField] private string midAirBool = "MidAir";        // Bool
     [SerializeField] private string idleBool = "Idle";            // Bool
     [SerializeField] private string jumpedTrigger = "Jumped";     // Trigger
@@ -155,51 +156,23 @@ public class CCAnimAndProceduralController : MonoBehaviour
     public void StartPlantingSequence()
     {
         if (!animator)
-        {
-            Debug.LogWarning("CCAnimAndProceduralController: StartPlantingSequence called but Animator is missing.", this);
             return;
-        }
-
-        Debug.Log("CCAnimAndProceduralController: StartPlantingSequence CALLED", this);
 
         // only allow while grounded
         if (bodyMovement && !bodyMovement.IsGrounded)
-        {
-            Debug.Log("CCAnimAndProceduralController: BLOCKED (not grounded)", this);
             return;
-        }
 
-        if (_isPlantingLock)
-        {
-            Debug.Log("CCAnimAndProceduralController: BLOCKED (already in planting lock)", this);
-            return;
-        }
-
-        // Fire planting TRIGGER in Animator
-        if (!HasParam(plantingTrigger, AnimatorControllerParameterType.Trigger))
-        {
-            Debug.LogWarning(
-                $"CCAnimAndProceduralController: Animator Trigger '{plantingTrigger}' not found or not Trigger. Check Animator parameters.",
-                this);
-        }
-        else
-        {
-            Debug.Log($"CCAnimAndProceduralController: setting Trigger '{plantingTrigger}'", this);
-            SetTriggerSafe(plantingTrigger);
-        }
-
-        // lock movement + rig for minimum time
+        // --- lock movement + rig (but allow re-entry) ---
         _isPlantingLock = true;
         _plantingLockTimer = Mathf.Max(0.01f, plantingLockSeconds);
 
         if (bodyMovement) bodyMovement.enabled = false;
+        SetRigEnabled(false);
 
         SetBoolSafe(idleBool, false);
         _idleTimer = 0f;
 
-        SetRigEnabled(false);
-
-        // START Dolly / cinematic **right when trigger is fired**
+        // camera dolly
         if (cameraController != null)
         {
             float dur = plantingDollyDuration > 0f
@@ -209,10 +182,21 @@ public class CCAnimAndProceduralController : MonoBehaviour
             cameraController.StartCinematic(dur);
         }
 
-        // optional digging sound at start
+        // optional sound
         if (audioSource != null && diggingAudioClip != null)
             audioSource.PlayOneShot(diggingAudioClip);
+
+        // --- FORCE the animation to restart every time ---
+
+        // 1) re-fire the trigger
+        animator.ResetTrigger(plantingTrigger);
+        animator.SetTrigger(plantingTrigger);
+
+        // 2) hard crossfade to the planting state (base layer, time = 0)
+        if (!string.IsNullOrEmpty(plantingTrigger))
+            animator.CrossFadeInFixedTime(plantingTrigger, 0.1f, 0, 0f);
     }
+
 
     private void SetRigEnabled(bool enabled)
     {

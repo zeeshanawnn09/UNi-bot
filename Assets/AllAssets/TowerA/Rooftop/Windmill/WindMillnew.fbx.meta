@@ -59,8 +59,8 @@ ModelImporter:
       name: Rotor|RotorAction
       takeName: Rotor|RotorAction
       internalID: 6214377197099054324
-      firstFrame: 0
-      lastFrame: 60
+      firstFrame: 6
+      lastFrame: 37
       wrapMode: 0
       orientationOffsetY: 0
       level: 0

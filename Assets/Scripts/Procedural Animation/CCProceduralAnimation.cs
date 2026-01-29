@@ -74,7 +74,7 @@ public class CCProceduralAnimation : MonoBehaviour
     [SerializeField] private bool readValuesFromBodyMovement = true;
     [SerializeField] private CCBodyMovement bodyMovement;
 
-    public EventHandler<Vector3> OnStepFinished;
+    public event Action<Vector3> OnStepFinished;
 
     private Vector3[] lastLegPositions;
     private Vector3[] defaultLegPositions;
@@ -357,7 +357,7 @@ public class CCProceduralAnimation : MonoBehaviour
 
         if (totalDistance[index] > .3f)
         {
-            OnStepFinished?.Invoke(this, targetPosition);
+            OnStepFinished?.Invoke(targetPosition);
         }
 
         isLegMoving[index] = false;

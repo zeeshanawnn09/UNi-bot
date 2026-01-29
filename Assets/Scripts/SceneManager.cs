@@ -24,6 +24,7 @@ public class SceneLoader : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
+            Debug.Log($"[SceneLoader] Duplicate in scene {SceneManager.GetActiveScene().buildIndex}, destroying this one.", this);
             Destroy(gameObject);
             return;
         }
@@ -32,6 +33,7 @@ public class SceneLoader : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         currentSceneBuildIndex = SceneManager.GetActiveScene().buildIndex;
+        Debug.Log($"[SceneLoader] Awake in scene {currentSceneBuildIndex}", this);
 
         SceneManager.activeSceneChanged += OnActiveSceneChanged;
     }
@@ -39,13 +41,19 @@ public class SceneLoader : MonoBehaviour
     private void OnDestroy()
     {
         if (Instance == this)
+        {
+            Debug.Log("[SceneLoader] OnDestroy, unsubscribing.", this);
             SceneManager.activeSceneChanged -= OnActiveSceneChanged;
+        }
     }
 
     private void OnActiveSceneChanged(Scene oldScene, Scene newScene)
     {
-        previousSceneBuildIndex = oldScene.buildIndex;
+        // IMPORTANT: do NOT overwrite previousSceneBuildIndex here.
+        // We already set it manually in LoadByIndex before calling LoadScene.
         currentSceneBuildIndex = newScene.buildIndex;
+
+        Debug.Log($"[SceneLoader] Scene changed prev={previousSceneBuildIndex} -> current={currentSceneBuildIndex}", this);
     }
 
     public static void LoadMainMenu() => LoadByIndex(Instance.MainMenuSceneIndex);
@@ -62,19 +70,23 @@ public class SceneLoader : MonoBehaviour
     {
         if (Instance == null)
         {
-            Debug.LogError("SceneLoader not found. Add it once in the first scene.");
+            Debug.LogError("[SceneLoader] SceneLoader not found. Add it once in the first scene.");
             return;
         }
 
         int sceneCount = SceneManager.sceneCountInBuildSettings;
         if (buildIndex < 0 || buildIndex >= sceneCount)
         {
-            Debug.LogError($"Invalid buildIndex {buildIndex}. Valid range: 0 to {sceneCount - 1}. Check Build Settings order.");
+            Debug.LogError($"[SceneLoader] Invalid buildIndex {buildIndex}. Valid range: 0 to {sceneCount - 1}.", Instance);
             return;
         }
 
-        // record prev immediately (so it’s correct even before activeSceneChanged fires)
-        Instance.previousSceneBuildIndex = SceneManager.GetActiveScene().buildIndex;
+        int current = SceneManager.GetActiveScene().buildIndex;
+
+        // Record previous here and DO NOT touch it in OnActiveSceneChanged.
+        Instance.previousSceneBuildIndex = current;
+
+        Debug.Log($"[SceneLoader] LoadByIndex {current} -> {buildIndex}", Instance);
 
         SceneManager.LoadScene(buildIndex);
     }
